@@ -24,6 +24,11 @@
 | D018 | 2026-08-04 | Vignettes en SVG local via `background-image` | Pas de `<img>`, pas de fichier binaire, rendu déterministe et reproductible hors ligne |
 | D019 | 2026-08-04 | Bases de connaissances en modules TypeScript statiques | Lecture seule, versionnées avec le code, extensibles sans base de données |
 | D020 | 2026-08-04 | Les fiches caméra portent un avertissement permanent | « Une simulation esthétique ne prouve jamais l'usage réel d'une caméra » — affiché dans l'inspecteur et le compositeur de prompt |
+| D021 | 2026-08-04 | Rôles studio V2 : owner / admin / creator / reviewer | Remplace l'énumération provisoire owner/admin/member/viewer de `schema-v2.ts`, alignée sur les politiques RLS du Sprint 6 |
+| D022 | 2026-08-04 | Le store applicatif garde les types V1 (`types.ts`, `types-storyboard.ts`) comme forme publique | `docs/SUPABASE_MIGRATION.md` l'avait déjà prévu ; seule la persistance change, aucun composant n'a été réécrit |
+| D023 | 2026-08-04 | Champs créatifs (vision, traitement, dossier artistique, workflow) stockés en `jsonb` dans `project_canon` plutôt que normalisés | Toujours lus/écrits comme un document entier par l'interface ; normaliser aurait multiplié les tables sans bénéfice de requêtage |
+| D024 | 2026-08-04 | `bootstrapDemoData` regénère un UUID pour chaque entité de démonstration et remappe toutes les références croisées | Les fixtures locales utilisent des identifiants lisibles (`proj-gilgamesh`, `shot-001`…), incompatibles avec des clés primaires `uuid` — bug réel détecté par exécution, pas par le typage |
+| D025 | 2026-08-04 | `middleware.ts` vit dans `src/`, pas à la racine du dépôt | Next.js ne détecte pas le middleware à la racine quand le projet utilise un dossier `src/` — la protection de route ne s'appliquait pas avant correction |
 
 ## Hypothèses
 

@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { localAuthAdapter } from '@/adapters/auth/LocalAuthAdapter'
 import { useMuseionStore } from '@/store/museionStore'
 import { AppShell } from '@/components/layout/AppShell'
 import { Button } from '@/components/ui/Button'

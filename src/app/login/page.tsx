@@ -1,45 +1,56 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { localAuthAdapter } from '@/adapters/auth/LocalAuthAdapter'
+import Link from 'next/link'
+import { supabaseAuthAdapter } from '@/adapters/auth/SupabaseAuthAdapter'
 import { useMuseionStore } from '@/store/museionStore'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
+  )
+}
+
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { setAuth, setProfile } = useMuseionStore()
-  const [profileName, setProfileName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const session = localAuthAdapter.getSession()
+    const session = supabaseAuthAdapter.getSession()
     if (session) {
-      router.replace('/')
+      router.replace(searchParams.get('redirectTo') || '/')
     }
-  }, [router])
+  }, [router, searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
 
-    const session = await localAuthAdapter.signIn(profileName)
+    const session = await supabaseAuthAdapter.signInWithEmail(email, password)
 
     if (!session) {
-      setError('Profil inconnu. Essayez « administrateur ».')
+      setError('Email ou mot de passe incorrect.')
       setLoading(false)
       return
     }
 
     setAuth(session)
-    const profile = localAuthAdapter.getProfile()
+    const profile = supabaseAuthAdapter.getProfile()
     if (profile) setProfile(profile)
 
-    router.replace('/')
+    router.replace(searchParams.get('redirectTo') || '/')
   }
 
   return (
@@ -73,17 +84,31 @@ export default function LoginPage() {
             className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-surface)] p-6 flex flex-col gap-4"
           >
             <Input
-              id="profile"
-              label="Profil"
-              placeholder="administrateur"
-              value={profileName}
+              id="email"
+              type="email"
+              label="Email"
+              placeholder="vous@studio.com"
+              value={email}
               onChange={(e) => {
-                setProfileName(e.target.value)
+                setEmail(e.target.value)
                 setError('')
               }}
               autoFocus
-              autoComplete="off"
+              autoComplete="email"
               spellCheck={false}
+            />
+
+            <Input
+              id="password"
+              type="password"
+              label="Mot de passe"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value)
+                setError('')
+              }}
+              autoComplete="current-password"
             />
 
             {error && (
@@ -97,14 +122,16 @@ export default function LoginPage() {
               variant="primary"
               size="lg"
               className="w-full mt-1"
-              disabled={loading || profileName.trim() === ''}
+              disabled={loading || email.trim() === '' || password.trim() === ''}
             >
               {loading ? 'Connexion…' : 'Entrer'}
             </Button>
           </div>
 
           <p className="text-center text-xs text-[var(--text-muted)]">
-            Version 1 — Accès local uniquement
+            <Link href="/forgot-password" className="hover:text-[var(--text-secondary)] transition-colors">
+              Mot de passe oublié ?
+            </Link>
           </p>
         </form>
       </div>

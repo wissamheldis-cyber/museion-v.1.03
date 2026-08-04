@@ -39,10 +39,12 @@ export const StudioSchema = BaseEntitySchema.extend({
   plan: z.enum(['free', 'pro', 'enterprise']).default('free'),
 });
 
+export const StudioRoleSchema = z.enum(['owner', 'admin', 'creator', 'reviewer']);
+
 export const StudioMembershipSchema = BaseEntitySchema.extend({
   studioId: z.string().uuid(),
   userId: z.string().uuid(),
-  role: z.enum(['owner', 'admin', 'member', 'viewer']),
+  role: StudioRoleSchema,
 });
 
 // ============================================================================
@@ -317,6 +319,7 @@ export const UsageEventSchema = BaseEntitySchema.extend({
 
 export type UserProfile = z.infer<typeof UserProfileSchema>;
 export type Studio = z.infer<typeof StudioSchema>;
+export type StudioRole = z.infer<typeof StudioRoleSchema>;
 export type StudioMembership = z.infer<typeof StudioMembershipSchema>;
 export type ProjectV2 = z.infer<typeof ProjectSchema>;
 export type ProjectCanon = z.infer<typeof ProjectCanonSchema>;

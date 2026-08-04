@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { localAuthAdapter } from '@/adapters/auth/LocalAuthAdapter'
+import { supabaseAuthAdapter } from '@/adapters/auth/SupabaseAuthAdapter'
 import { useMuseionStore } from '@/store/museionStore'
 import { DemoTourProvider } from '@/components/tour/DemoTourProvider'
 import { DemoTourController } from '@/components/tour/DemoTourController'
@@ -30,14 +30,34 @@ export function AppShell({ children, projectSlug, tabs, activeTab, onTabChange }
   const [collapsed, setCollapsed] = useState(false)
 
   useEffect(() => {
-    const session = localAuthAdapter.getSession()
-    if (!session) {
-      router.replace('/login')
-      return
+    const unsubscribe = supabaseAuthAdapter.onAuthStateChange((session) => {
+      if (session) {
+        setAuth(session)
+        const profile = supabaseAuthAdapter.getProfile()
+        if (profile) setProfile(profile)
+      } else {
+        router.replace('/login')
+      }
+    })
+
+    const existing = supabaseAuthAdapter.getSession()
+    if (existing) {
+      setAuth(existing)
+      const profile = supabaseAuthAdapter.getProfile()
+      if (profile) setProfile(profile)
+      return unsubscribe
     }
-    setAuth(session)
-    const profile = localAuthAdapter.getProfile()
-    if (profile) setProfile(profile)
+
+    // Middleware already confirmed a valid session server-side; the client
+    // cache may just not be populated yet. Give it a moment before treating
+    // this as a real sign-out.
+    const timeout = setTimeout(() => {
+      if (!supabaseAuthAdapter.getSession()) router.replace('/login')
+    }, 800)
+    return () => {
+      clearTimeout(timeout)
+      unsubscribe()
+    }
   }, [router, setAuth, setProfile])
 
   // Sous 1280 px, la navigation se replie pour laisser la place au contenu

@@ -1,3 +1,32 @@
+# STATUS.md
+
+## Sprint 6 — Supabase (auth, studios, Postgres, Storage)
+
+**Date :** 2026-08-04
+**Statut global :** Backend complet et testé localement. Push distant non
+exécuté (dry-run validé, en attente de validation humaine).
+
+### Fait et vérifié réellement
+
+| Élément | Vérification |
+|---|---|
+| Auth email/mot de passe (login, logout, session, mot de passe oublié/réinitialisation, garde de route) | Câblé dans les pages réelles ; middleware testé en HTTP (redirections 307 confirmées avant/après connexion) |
+| Middleware de session | Déplacé vers `src/middleware.ts` (obligatoire avec un dossier `src/`) — ne fonctionnait pas au premier essai, corrigé et revérifié |
+| Schéma Postgres (29 tables) | `npx supabase db reset` réussi à froid |
+| RLS | `scripts/supabase/test-rls.mjs` — 17/17 assertions réelles (isolation inter-studio, rôles, dernier owner, storage) |
+| Storage privé (6 buckets) | Testé dans le même script (upload/download positif et négatif) |
+| Store applicatif (`museionStore.ts`) | Converti en écritures asynchrones vers Supabase avec rollback optimiste, pour la totalité des actions (projets, storyboard, assets, écriture, production, review, livrables, bibliothèque) |
+| Bootstrap des projets de démo (Gilgamesh compris) sur un studio neuf | Exécuté réellement contre la stack locale : 6 projets, 22 scènes, 13 plans, 22 connexions, 19 assets relus correctement — a révélé et corrigé un bug bloquant (ids de démo non-UUID) |
+| Build / lint / tests | `npm run build` OK, `npm run lint` sans nouvelle erreur, `npx vitest run` 100/101 (1 échec préexistant, sans rapport avec ce sprint) |
+| Vérification interactive en navigateur (Phase 16) | **Non faite** — l'extension Claude in Chrome n'était pas connectée dans cet environnement. Seule une vérification HTTP (routes, redirections, API Auth) a été possible. |
+
+### Limite connue
+
+- Le test unitaire `storyboard.test.tsx` (« rattache l'asset à la scène ») échoue par intermittence, indépendamment de ce sprint — pollution d'état entre tests, déjà présente avant Sprint 6.
+- La vérification visuelle/interactive complète de l'application (Phase 16 du brief) reste à faire manuellement.
+
+---
+
 # STATUS.md — Sprint 2
 
 **Date :** 2026-08-04

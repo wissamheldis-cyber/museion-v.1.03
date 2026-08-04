@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Check, ChevronDown, LogOut, Search, User } from 'lucide-react'
 import { useMuseionStore } from '@/store/museionStore'
-import { localAuthAdapter } from '@/adapters/auth/LocalAuthAdapter'
+import { supabaseAuthAdapter } from '@/adapters/auth/SupabaseAuthAdapter'
 import { FORMAT_LABELS, cn } from '@/lib/utils'
 
 interface TopBarProps {
@@ -42,7 +42,7 @@ export function TopBar({ projectSlug, tabs, activeTab, onTabChange }: TopBarProp
   }, [projectMenuOpen, profileMenuOpen])
 
   const handleSignOut = async () => {
-    await localAuthAdapter.signOut()
+    await supabaseAuthAdapter.signOut()
     signOut()
     router.push('/login')
   }

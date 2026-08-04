@@ -4,7 +4,7 @@ import { useEffect, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { localAuthAdapter } from '@/adapters/auth/LocalAuthAdapter'
+import { supabaseAuthAdapter } from '@/adapters/auth/SupabaseAuthAdapter'
 import { useMuseionStore } from '@/store/museionStore'
 import { Clapperboard, Megaphone, Plus, Lock, LogOut, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -19,20 +19,37 @@ export default function HomePage() {
   const isMounted = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
   useEffect(() => {
-    const session = localAuthAdapter.getSession()
-    if (!session) {
-      router.replace('/login')
-      return
+    const unsubscribe = supabaseAuthAdapter.onAuthStateChange((session) => {
+      if (session) {
+        setAuth(session)
+        const profile = supabaseAuthAdapter.getProfile()
+        if (profile) setProfile(profile)
+      } else {
+        router.replace('/login')
+      }
+    })
+
+    const existing = supabaseAuthAdapter.getSession()
+    if (existing) {
+      if (!studioProfile) {
+        setAuth(existing)
+        const profile = supabaseAuthAdapter.getProfile()
+        if (profile) setProfile(profile)
+      }
+      return unsubscribe
     }
-    if (!studioProfile) {
-      setAuth(session)
-      const profile = localAuthAdapter.getProfile()
-      if (profile) setProfile(profile)
+
+    const timeout = setTimeout(() => {
+      if (!supabaseAuthAdapter.getSession()) router.replace('/login')
+    }, 800)
+    return () => {
+      clearTimeout(timeout)
+      unsubscribe()
     }
   }, [router, studioProfile, setAuth, setProfile])
 
   const handleSignOut = async () => {
-    await localAuthAdapter.signOut()
+    await supabaseAuthAdapter.signOut()
     signOut()
     router.push('/login')
   }

@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMuseionStore } from '@/store/museionStore'
-import { localAuthAdapter } from '@/adapters/auth/LocalAuthAdapter'
+import { supabaseAuthAdapter } from '@/adapters/auth/SupabaseAuthAdapter'
 
 interface AuthGuardProps {
   children: React.ReactNode
@@ -11,22 +11,31 @@ interface AuthGuardProps {
 
 export function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter()
-  const { auth, setAuth, setProfile } = useMuseionStore()
+  const { setAuth, setProfile } = useMuseionStore()
+  const [session, setSession] = useState(() => supabaseAuthAdapter.getSession())
 
   useEffect(() => {
-    const session = localAuthAdapter.getSession()
-    if (!session) {
-      router.replace('/login')
-      return
-    }
-    if (!auth) {
-      setAuth(session)
-      const profile = localAuthAdapter.getProfile()
+    const unsubscribe = supabaseAuthAdapter.onAuthStateChange((next) => {
+      setSession(next)
+      if (next) {
+        setAuth(next)
+        const profile = supabaseAuthAdapter.getProfile()
+        if (profile) setProfile(profile)
+      } else {
+        router.replace('/login')
+      }
+    })
+
+    const existing = supabaseAuthAdapter.getSession()
+    if (existing) {
+      setAuth(existing)
+      const profile = supabaseAuthAdapter.getProfile()
       if (profile) setProfile(profile)
     }
-  }, [auth, router, setAuth, setProfile])
 
-  const session = localAuthAdapter.getSession()
+    return unsubscribe
+  }, [router, setAuth, setProfile])
+
   if (!session) return null
 
   return <>{children}</>
