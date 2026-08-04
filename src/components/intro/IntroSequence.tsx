@@ -6,8 +6,10 @@ const FRAME_COUNT = 288
 const DURATION_MS = 16000
 const REVEAL_START_MS = 13500
 const REVEAL_DURATION_MS = 3000
+const LOGO_APPEAR_MS = 11000
 const FRAME_DIR = '/intro/images%20intro'
 const AUDIO_SRC = '/intro/song%20mp3.MP3'
+const LOGO_SRC = '/brand/logo-login.png'
 
 function framePath(n: number): string {
   return `${FRAME_DIR}/ezgif-frame-${String(n).padStart(3, '0')}.jpg`
@@ -36,15 +38,21 @@ const AUDIO_FAILSAFE_MS = 30000
  *
  * Le son démarre seul au montage et ne peut pas être coupé : aucun contrôle,
  * aucun bouton, aucun clic n'agit dessus.
+ *
+ * À 11s, le logo Museion apparaît en fondu par-dessus les images, pendant
+ * que l'intro joue encore ; il s'efface ensuite avec le reste de l'overlay
+ * à partir de 13,5s.
  */
 export function IntroSequence({ onRevealStart, onComplete }: IntroSequenceProps) {
   const [frame, setFrame] = useState(1)
   const [fadingOut, setFadingOut] = useState(false)
+  const [logoVisible, setLogoVisible] = useState(false)
   const [mounted, setMounted] = useState(true)
 
   const loadedRef = useRef<Set<number>>(new Set())
   const startRef = useRef<number | null>(null)
   const rafRef = useRef<number | null>(null)
+  const logoAppearFiredRef = useRef(false)
   const revealFiredRef = useRef(false)
   const finishedRef = useRef(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -82,6 +90,11 @@ export function IntroSequence({ onRevealStart, onComplete }: IntroSequenceProps)
       while (toShow > 1 && !loadedRef.current.has(toShow)) toShow--
       setFrame(toShow)
 
+      if (!logoAppearFiredRef.current && elapsed >= LOGO_APPEAR_MS) {
+        logoAppearFiredRef.current = true
+        setLogoVisible(true)
+      }
+
       if (!revealFiredRef.current && elapsed >= REVEAL_START_MS) {
         revealFiredRef.current = true
         setFadingOut(true)
@@ -105,17 +118,35 @@ export function IntroSequence({ onRevealStart, onComplete }: IntroSequenceProps)
   if (!mounted) return null
 
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black"
-      style={{
-        opacity: fadingOut ? 0 : 1,
-        pointerEvents: fadingOut ? 'none' : 'auto',
-        transition: `opacity ${REVEAL_DURATION_MS}ms ease-out`,
-      }}
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={framePath(frame)} alt="" className="h-full w-full object-cover" draggable={false} />
-      <audio ref={audioRef} src={AUDIO_SRC} preload="auto" />
-    </div>
+    <>
+      <div
+        className="fixed inset-0 z-[100] flex items-center justify-center bg-black"
+        style={{
+          opacity: fadingOut ? 0 : 1,
+          pointerEvents: fadingOut ? 'none' : 'auto',
+          transition: `opacity ${REVEAL_DURATION_MS}ms ease-out`,
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={framePath(frame)} alt="" className="h-full w-full object-cover" draggable={false} />
+        <audio ref={audioRef} src={AUDIO_SRC} preload="auto" />
+      </div>
+      <div
+        className="fixed inset-0 z-[101] flex items-center justify-center pointer-events-none"
+        style={{
+          opacity: fadingOut ? 0 : logoVisible ? 1 : 0,
+          transition: `opacity ${REVEAL_DURATION_MS}ms ease-out`,
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={LOGO_SRC}
+          alt="Museion"
+          className="w-[48rem] max-w-[92vw]"
+          style={{ aspectRatio: '1771 / 279' }}
+          draggable={false}
+        />
+      </div>
+    </>
   )
 }
