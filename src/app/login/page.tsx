@@ -28,7 +28,6 @@ function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [introActive, setIntroActive] = useState(true)
   const [revealed, setRevealed] = useState(false)
-  const [logoRevealed, setLogoRevealed] = useState(false)
 
   useEffect(() => {
     const session = supabaseAuthAdapter.getSession()
@@ -60,7 +59,7 @@ function LoginForm() {
   return (
     <Fragment>
     <div
-      className="min-h-screen bg-transparent flex flex-col items-center justify-center relative overflow-y-auto py-12"
+      className="min-h-screen bg-transparent flex flex-col items-center justify-center relative overflow-hidden"
       style={{
         filter: revealed ? 'blur(0px)' : 'blur(40px)',
         transition: 'filter 3000ms ease-out',
@@ -76,20 +75,13 @@ function LoginForm() {
 
       <div className="relative w-full max-w-sm mx-auto px-6">
         {/* Logo */}
-        <div className="flex flex-col items-center mb-16">
-          <div
-            className="relative w-[44rem] max-w-[90vw] aspect-[1771/279]"
-            style={{
-              opacity: logoRevealed ? 1 : 0,
-              transform: logoRevealed ? 'scale(1)' : 'scale(0.85)',
-              transition: 'opacity 3000ms ease-out, transform 3000ms ease-out',
-            }}
-          >
+        <div className="flex flex-col items-center mb-10">
+          <div className="w-96 h-96 relative">
             <Image
               src="/brand/logo-login.png"
               alt="Museion"
               fill
-              sizes="704px"
+              sizes="384px"
               className="object-contain"
               priority
             />
@@ -156,7 +148,6 @@ function LoginForm() {
     </div>
     {introActive && (
       <IntroSequence
-        onLogoRevealStart={() => setLogoRevealed(true)}
         onRevealStart={() => setRevealed(true)}
         onComplete={() => setIntroActive(false)}
       />
