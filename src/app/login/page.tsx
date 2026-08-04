@@ -60,7 +60,7 @@ function LoginForm() {
   return (
     <Fragment>
     <div
-      className="min-h-screen bg-transparent flex flex-col items-center justify-center relative overflow-hidden"
+      className="min-h-screen bg-transparent flex flex-col items-center justify-center relative overflow-y-auto py-12"
       style={{
         filter: revealed ? 'blur(0px)' : 'blur(40px)',
         transition: 'filter 3000ms ease-out',
@@ -80,9 +80,9 @@ function LoginForm() {
           <div
             className="w-[30rem] h-[30rem] relative"
             style={{
-              filter: logoRevealed ? 'blur(0px)' : 'blur(24px)',
+              opacity: logoRevealed ? 1 : 0,
               transform: logoRevealed ? 'scale(1)' : 'scale(0.85)',
-              transition: 'filter 3000ms ease-out, transform 3000ms ease-out',
+              transition: 'opacity 3000ms ease-out, transform 3000ms ease-out',
             }}
           >
             <Image
