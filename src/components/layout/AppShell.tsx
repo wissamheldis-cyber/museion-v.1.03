@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { localAuthAdapter } from '@/adapters/auth/LocalAuthAdapter'
 import { useMuseionStore } from '@/store/museionStore'
+import { DemoTourProvider } from '@/components/tour/DemoTourProvider'
+import { DemoTourController } from '@/components/tour/DemoTourController'
 import { CinemaSidebar } from './CinemaSidebar'
 import { TopBar } from './TopBar'
 
@@ -46,21 +48,24 @@ export function AppShell({ children, projectSlug, tabs, activeTab, onTabChange }
   }, [])
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[var(--bg-base)]">
-      <TopBar
-        projectSlug={projectSlug}
-        tabs={tabs}
-        activeTab={activeTab}
-        onTabChange={onTabChange}
-      />
-      <div className="flex min-h-0 flex-1">
-        <CinemaSidebar
+    <DemoTourProvider>
+      <div className="flex h-screen flex-col overflow-hidden bg-[var(--bg-base)]">
+        <TopBar
           projectSlug={projectSlug}
-          collapsed={collapsed}
-          onToggleCollapsed={() => setCollapsed((value) => !value)}
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={onTabChange}
         />
-        <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+        <div className="flex min-h-0 flex-1">
+          <CinemaSidebar
+            projectSlug={projectSlug}
+            collapsed={collapsed}
+            onToggleCollapsed={() => setCollapsed((value) => !value)}
+          />
+          <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+        </div>
       </div>
-    </div>
+      <DemoTourController />
+    </DemoTourProvider>
   )
 }

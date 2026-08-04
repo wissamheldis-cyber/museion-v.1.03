@@ -222,3 +222,37 @@ body {
 .save-indicator {
   animation: fade-in-out 2s ease-in-out forwards;
 }
+
+/* ============================================================
+   Démonstration guidée — animations sobres, toujours ignorables
+   ============================================================ */
+
+@keyframes tour-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes tour-rise-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes tour-draw-in {
+  from { opacity: 0; clip-path: inset(0 100% 0 0); }
+  to   { opacity: 1; clip-path: inset(0 0 0 0); }
+}
+
+@keyframes tour-spotlight-in {
+  from { opacity: 0; transform: scale(0.985); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.tour-fade      { animation: tour-fade-in      var(--transition-slow) ease-out both; }
+.tour-rise      { animation: tour-rise-in      var(--transition-slow) ease-out both; }
+.tour-draw      { animation: tour-draw-in      320ms ease-out both; }
+.tour-spotlight { animation: tour-spotlight-in var(--transition-slow) ease-out both; }
+
+/* Révélation progressive d'un contenu de démonstration */
+.demo-reveal {
+  animation: tour-rise-in var(--transition-slow) ease-out both;
+}

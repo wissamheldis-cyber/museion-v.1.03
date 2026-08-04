@@ -14,6 +14,7 @@ import {
   Camera,
   Film,
   Boxes,
+  Workflow,
   Monitor,
   Star,
   Library,
@@ -31,8 +32,9 @@ const NAV_ITEMS = [
 const PROJECT_NAV_ITEMS = (slug: string) => [
   { href: `/cinema/projects/${slug}`, label: 'Tableau de bord', icon: LayoutDashboard, exact: true },
   { href: `/cinema/projects/${slug}/development`, label: 'Développement', icon: FileText },
-  { href: `/cinema/projects/${slug}/writing`, label: 'Assistance à l’écriture', icon: PenLine },
+  { href: `/cinema/projects/${slug}/writing-assistant`, label: 'Assistance à l’écriture', icon: PenLine },
   { href: `/cinema/projects/${slug}/storyboard`, label: 'Storyboard', icon: Camera },
+  { href: `/cinema/projects/${slug}/board`, label: 'Tableau dynamique', icon: Workflow },
   { href: `/cinema/projects/${slug}/plans`, label: 'Plans & caméra', icon: Film },
   { href: `/cinema/projects/${slug}/previs`, label: 'Previs', icon: Boxes },
   { href: `/cinema/projects/${slug}/production`, label: 'Production', icon: Monitor },

@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import {
   DndContext,
   DragOverlay,
@@ -17,38 +18,44 @@ import {
   PanelLeftOpen,
   PanelRightClose,
   PanelRightOpen,
+  Plus,
   SlidersHorizontal,
   Workflow,
 } from 'lucide-react'
 import { useMuseionStore } from '@/store/museionStore'
-import { AppShell } from '@/components/layout/AppShell'
 import { SaveIndicator } from '@/components/ui/SaveIndicator'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { PreviewFrame } from '@/components/ui/PreviewFrame'
+import { Button } from '@/components/ui/Button'
 import { ClassicView } from '@/components/storyboard/ClassicView'
 import { DynamicCanvas } from '@/components/storyboard/DynamicCanvas'
 import { SceneInspector } from '@/components/storyboard/SceneInspector'
 import { AssetBin } from '@/components/storyboard/AssetBin'
 import { TemporaryArchives } from '@/components/storyboard/TemporaryArchives'
 import { activePreviewProvider } from '@/providers/preview'
+import type { ProjectScope } from '@/components/layout/useProjectFromRoute'
 import type { SceneMoment, StoryboardScene } from '@/lib/types-storyboard'
 import { cn } from '@/lib/utils'
 
-type TabId = 'classic' | 'dynamic'
-
 const MOMENT_FILTERS: (SceneMoment | 'all')[] = ['all', 'Aube', 'Jour', 'Crépuscule', 'Nuit']
 
-export default function StoryboardPage() {
+interface StoryboardWorkspaceProps {
+  scope: ProjectScope
+  view: 'classic' | 'board'
+}
 
-  const projects = useMuseionStore((s) => s.projects)
-  const sequences = useMuseionStore((s) => s.sequences)
-  const scenes = useMuseionStore((s) => s.scenes)
-  const assets = useMuseionStore((s) => s.assets)
-  const edges = useMuseionStore((s) => s.edges)
+/**
+ * Implémentation unique du storyboard, partagée par la vue classique
+ * (/storyboard) et le tableau dynamique (/board). Les deux lisent
+ * exactement les mêmes données, filtrées sur le projet de la route.
+ */
+export function StoryboardWorkspace({ scope, view }: StoryboardWorkspaceProps) {
+  const { slug, project, sequences, scenes, assets, edges } = scope
+
   const selectedSceneId = useMuseionStore((s) => s.selectedSceneId)
   const canvasViewport = useMuseionStore((s) => s.canvasViewport)
-
   const selectScene = useMuseionStore((s) => s.selectScene)
+  const addSequence = useMuseionStore((s) => s.addSequence)
   const addScene = useMuseionStore((s) => s.addScene)
   const updateScene = useMuseionStore((s) => s.updateScene)
   const removeScene = useMuseionStore((s) => s.removeScene)
@@ -65,8 +72,6 @@ export default function StoryboardPage() {
   const restoreAndApproveAsset = useMuseionStore((s) => s.restoreAndApproveAsset)
   const deleteAsset = useMuseionStore((s) => s.deleteAsset)
 
-  const [activeTab, setActiveTab] = useState<TabId>('classic')
-  // null = la séquence affichée suit la scène sélectionnée
   const [pinnedSequenceId, setPinnedSequenceId] = useState<string | null>(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [momentFilter, setMomentFilter] = useState<SceneMoment | 'all'>('all')
@@ -79,7 +84,6 @@ export default function StoryboardPage() {
   const [inspectorOpen, setInspectorOpen] = useState(true)
   const [draggedAssetId, setDraggedAssetId] = useState<string | null>(null)
 
-  // Panneaux rétractables : repliés automatiquement sous 1280 px
   useEffect(() => {
     const apply = () => {
       const narrow = window.innerWidth < 1280
@@ -91,10 +95,19 @@ export default function StoryboardPage() {
     return () => window.removeEventListener('resize', apply)
   }, [])
 
-  const project = projects.find((p) => p.slug === 'gilgamesh')
-  const selectedScene = scenes.find((s) => s.id === selectedSceneId)
+  // La sélection globale peut viser un autre projet : on retombe alors
+  // sur la première scène du projet courant, jamais sur celle d'un voisin.
+  const effectiveSceneId = scenes.some((s) => s.id === selectedSceneId)
+    ? selectedSceneId
+    : (scenes[0]?.id ?? null)
 
-  // La séquence affichée suit la scène sélectionnée, sauf choix explicite
+  useEffect(() => {
+    if (selectedSceneId !== effectiveSceneId) {
+      selectScene(effectiveSceneId)
+    }
+  }, [selectedSceneId, effectiveSceneId, selectScene])
+
+  const selectedScene = scenes.find((s) => s.id === effectiveSceneId)
   const activeSequenceId =
     pinnedSequenceId ?? selectedScene?.sequenceId ?? sequences[0]?.id ?? ''
 
@@ -114,7 +127,6 @@ export default function StoryboardPage() {
   )
 
   const filtersActive = momentFilter !== 'all' || placeFilter !== 'all'
-
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
   const handleGeneratePreview = useCallback(async () => {
@@ -167,128 +179,127 @@ export default function StoryboardPage() {
   if (!project) return null
 
   const draggedAsset = draggedAssetId ? assets.find((a) => a.id === draggedAssetId) : undefined
+  const isEmpty = sequences.length === 0
 
   return (
-    <AppShell projectSlug="gilgamesh">
+    <>
+      <header className="border-b border-[var(--border-subtle)] bg-[var(--bg-base)] px-6 py-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold text-[var(--text-primary)]">
+              {view === 'classic' ? 'Storyboard' : 'Tableau dynamique'}
+            </h1>
+            <p className="mt-0.5 text-sm text-[var(--text-secondary)]">
+              {view === 'classic'
+                ? 'Organisez vos séquences et visualisez vos scènes clés.'
+                : 'Reliez vos scènes, ouvrez des branches, réorganisez le récit.'}
+            </p>
+          </div>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        {/* En-tête */}
-        <header className="border-b border-[var(--border-subtle)] bg-[var(--bg-base)]/90 px-6 py-4 backdrop-blur-xl">
+          <div className="flex flex-wrap items-center gap-2">
+            <SaveIndicator />
 
-          <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-semibold text-[var(--text-primary)]">Storyboard</h1>
-              <p className="mt-0.5 text-sm text-[var(--text-secondary)]">
-                Organisez vos séquences et visualisez vos scènes clés.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <SaveIndicator />
-
-              <div
-                className="flex items-center gap-1 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-surface)] p-1"
-                role="tablist"
-                aria-label="Vues du storyboard"
-              >
-                <TabButton
-                  active={activeTab === 'classic'}
-                  onClick={() => setActiveTab('classic')}
-                  icon={LayoutGrid}
-                  label="Storyboard classique"
-                />
-                <TabButton
-                  active={activeTab === 'dynamic'}
-                  onClick={() => setActiveTab('dynamic')}
-                  icon={Workflow}
-                  label="Tableau dynamique"
-                />
-              </div>
-
-              {activeTab === 'classic' && (
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setFiltersOpen((open) => !open)}
-                    aria-expanded={filtersOpen}
-                    title="Filtrer les scènes"
-                    className={cn(
-                      'flex h-9 items-center gap-2 rounded-[var(--radius-sm)] border px-3 text-sm transition-colors',
-                      filtersActive
-                        ? 'border-[var(--interactive)] bg-[var(--interactive-dim)] text-[var(--interactive)]'
-                        : 'border-[var(--border-default)] bg-[var(--bg-elevated)] text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)]'
-                    )}
-                  >
-                    <SlidersHorizontal size={14} />
-                    Filtres
-                  </button>
-
-                  {filtersOpen && (
-                    <div className="absolute right-0 top-11 z-30 w-60 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-elevated)] p-3 shadow-xl">
-                      <p className="label-caps">
-                        Moment
-                      </p>
-                      <div className="mt-1.5 flex flex-wrap gap-1">
-                        {MOMENT_FILTERS.map((moment) => (
-                          <FilterChip
-                            key={moment}
-                            active={momentFilter === moment}
-                            onClick={() => setMomentFilter(moment)}
-                            label={moment === 'all' ? 'Tous' : moment}
-                          />
-                        ))}
-                      </div>
-
-                      <p className="mt-3 label-caps">
-                        Intérieur / Extérieur
-                      </p>
-                      <div className="mt-1.5 flex flex-wrap gap-1">
-                        {(['all', 'INT', 'EXT'] as const).map((place) => (
-                          <FilterChip
-                            key={place}
-                            active={placeFilter === place}
-                            onClick={() => setPlaceFilter(place)}
-                            label={place === 'all' ? 'Tous' : place}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <button
-                type="button"
-                onClick={() => setArchivesOpen(true)}
-                title="Archives temporaires"
-                aria-label="Ouvrir les archives temporaires"
-                className="flex h-9 items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-elevated)] px-3 text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-card-hover)]"
-              >
-                <Archive size={14} />
-                Archives
-              </button>
-
-              {activeTab === 'dynamic' && (
-                <PanelToggle
-                  open={binOpen}
-                  onClick={() => setBinOpen((open) => !open)}
-                  openIcon={PanelLeftClose}
-                  closedIcon={PanelLeftOpen}
-                  label={binOpen ? 'Replier le bac d’assets' : 'Afficher le bac d’assets'}
-                />
-              )}
-              <PanelToggle
-                open={inspectorOpen}
-                onClick={() => setInspectorOpen((open) => !open)}
-                openIcon={PanelRightClose}
-                closedIcon={PanelRightOpen}
-                label={inspectorOpen ? 'Replier l’inspecteur' : 'Afficher l’inspecteur'}
+            <div
+              className="flex items-center gap-1 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-surface)] p-1"
+              role="tablist"
+              aria-label="Vues du storyboard"
+            >
+              <ViewLink
+                href={`/cinema/projects/${slug}/storyboard`}
+                active={view === 'classic'}
+                icon={LayoutGrid}
+                label="Storyboard classique"
+              />
+              <ViewLink
+                href={`/cinema/projects/${slug}/board`}
+                active={view === 'board'}
+                icon={Workflow}
+                label="Tableau dynamique"
               />
             </div>
-          </div>
-        </header>
 
-        {/* Contenu */}
+            {view === 'classic' && !isEmpty && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setFiltersOpen((open) => !open)}
+                  aria-expanded={filtersOpen}
+                  title="Filtrer les scènes"
+                  className={cn(
+                    'flex h-9 items-center gap-2 rounded-[var(--radius-sm)] border px-3 text-sm transition-colors',
+                    filtersActive
+                      ? 'border-[var(--interactive-border)] bg-[var(--interactive-dim)] text-[var(--text-primary)]'
+                      : 'border-[var(--border-default)] bg-[var(--bg-elevated)] text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)]'
+                  )}
+                >
+                  <SlidersHorizontal size={14} />
+                  Filtres
+                </button>
+
+                {filtersOpen && (
+                  <div className="absolute right-0 top-11 z-30 w-60 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-elevated)] p-3 shadow-xl">
+                    <p className="label-caps">Moment</p>
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {MOMENT_FILTERS.map((moment) => (
+                        <FilterChip
+                          key={moment}
+                          active={momentFilter === moment}
+                          onClick={() => setMomentFilter(moment)}
+                          label={moment === 'all' ? 'Tous' : moment}
+                        />
+                      ))}
+                    </div>
+
+                    <p className="label-caps mt-3">Intérieur / Extérieur</p>
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {(['all', 'INT', 'EXT'] as const).map((place) => (
+                        <FilterChip
+                          key={place}
+                          active={placeFilter === place}
+                          onClick={() => setPlaceFilter(place)}
+                          label={place === 'all' ? 'Tous' : place}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setArchivesOpen(true)}
+              title="Archives temporaires"
+              aria-label="Ouvrir les archives temporaires"
+              className="flex h-9 items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-elevated)] px-3 text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-card-hover)]"
+            >
+              <Archive size={14} />
+              Archives
+            </button>
+
+            {view === 'board' && (
+              <PanelToggle
+                open={binOpen}
+                onClick={() => setBinOpen((open) => !open)}
+                openIcon={PanelLeftClose}
+                closedIcon={PanelLeftOpen}
+                label={binOpen ? 'Replier le bac d’assets' : 'Afficher le bac d’assets'}
+              />
+            )}
+            <PanelToggle
+              open={inspectorOpen}
+              onClick={() => setInspectorOpen((open) => !open)}
+              openIcon={PanelRightClose}
+              closedIcon={PanelRightOpen}
+              label={inspectorOpen ? 'Replier l’inspecteur' : 'Afficher l’inspecteur'}
+            />
+          </div>
+        </div>
+      </header>
+
+      {isEmpty ? (
+        <EmptyStoryboard project={project.title} onCreate={() => addSequence(project.id)} />
+      ) : (
         <DndContext
           id="museion-storyboard-assets"
           sensors={sensors}
@@ -297,44 +308,48 @@ export default function StoryboardPage() {
           onDragCancel={() => setDraggedAssetId(null)}
         >
           <div className="flex min-h-0 flex-1">
-            {activeTab === 'dynamic' && binOpen && (
+            {view === 'board' && binOpen && (
               <div className="w-[228px] shrink-0">
                 <AssetBin assets={assets} onOpenArchives={() => setArchivesOpen(true)} />
               </div>
             )}
 
-            {activeTab === 'classic' ? (
-              <ClassicView
-                sequences={sequences}
-                scenes={filteredScenes}
-                assets={assets}
-                activeSequenceId={activeSequenceId}
-                selectedSceneId={selectedSceneId}
-                onActiveSequenceChange={setPinnedSequenceId}
-                onSelectScene={handleSelectScene}
-                onAddScene={() => addScene(activeSequenceId)}
-                onDuplicateScene={(sceneId) => duplicateScene(sceneId)}
-                onDeleteScene={(sceneId) =>
-                  setSceneToDelete(scenes.find((s) => s.id === sceneId) ?? null)
-                }
-                onMoveSceneToSequence={moveSceneToSequence}
-                onReorder={reorderScenes}
-              />
+            {view === 'classic' ? (
+              <div data-tour="sequence-strip" className="flex min-w-0 flex-1">
+                <ClassicView
+                  sequences={sequences}
+                  scenes={filteredScenes}
+                  assets={assets}
+                  activeSequenceId={activeSequenceId}
+                  selectedSceneId={effectiveSceneId}
+                  onActiveSequenceChange={setPinnedSequenceId}
+                  onSelectScene={handleSelectScene}
+                  onAddScene={() => activeSequenceId && addScene(activeSequenceId)}
+                  onDuplicateScene={(sceneId) => duplicateScene(sceneId)}
+                  onDeleteScene={(sceneId) =>
+                    setSceneToDelete(scenes.find((s) => s.id === sceneId) ?? null)
+                  }
+                  onMoveSceneToSequence={moveSceneToSequence}
+                  onReorder={reorderScenes}
+                />
+              </div>
             ) : (
-              <DynamicCanvas
-                scenes={scenes}
-                sequences={sequences}
-                assets={assets}
-                storyboardEdges={edges}
-                selectedSceneId={selectedSceneId}
-                viewport={canvasViewport}
-                onSelectScene={handleSelectScene}
-                onMoveScene={setSceneCanvasPosition}
-                onConnectScenes={(source, target, type) => addEdge(source, target, type)}
-                onRemoveEdge={removeEdge}
-                onResetLayout={resetCanvasLayout}
-                onViewportChange={setCanvasViewport}
-              />
+              <div data-tour="canvas" className="flex min-w-0 flex-1">
+                <DynamicCanvas
+                  scenes={scenes}
+                  sequences={sequences}
+                  assets={assets}
+                  storyboardEdges={edges}
+                  selectedSceneId={effectiveSceneId}
+                  viewport={canvasViewport}
+                  onSelectScene={selectScene}
+                  onMoveScene={setSceneCanvasPosition}
+                  onConnectScenes={(source, target, type) => addEdge(source, target, type)}
+                  onRemoveEdge={removeEdge}
+                  onResetLayout={resetCanvasLayout}
+                  onViewportChange={setCanvasViewport}
+                />
+              </div>
             )}
 
             {inspectorOpen && (
@@ -342,7 +357,7 @@ export default function StoryboardPage() {
                 <SceneInspector
                   scene={selectedScene}
                   assets={assets}
-                  projectSlug="gilgamesh"
+                  projectSlug={slug}
                   generating={generating}
                   lastPreviewAssetId={lastPreviewAssetId}
                   onUpdate={(patch) => selectedScene && updateScene(selectedScene.id, patch)}
@@ -355,7 +370,7 @@ export default function StoryboardPage() {
 
           <DragOverlay>
             {draggedAsset ? (
-              <div className="flex items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--accent-champagne)] bg-[var(--bg-card)] p-1.5 shadow-2xl">
+              <div className="flex items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--interactive-border)] bg-[var(--bg-card)] p-1.5 shadow-2xl">
                 <PreviewFrame
                   url={draggedAsset.url}
                   alt={draggedAsset.name}
@@ -368,7 +383,7 @@ export default function StoryboardPage() {
             ) : null}
           </DragOverlay>
         </DndContext>
-      </div>
+      )}
 
       <TemporaryArchives
         open={archivesOpen}
@@ -391,37 +406,57 @@ export default function StoryboardPage() {
           setSceneToDelete(null)
         }}
       />
-    </AppShell>
+    </>
   )
 }
 
-function TabButton({
+function EmptyStoryboard({ project, onCreate }: { project: string; onCreate: () => void }) {
+  return (
+    <div className="flex flex-1 items-center justify-center px-6 py-24">
+      <div className="w-full max-w-md">
+        <p className="label-caps">Storyboard vide</p>
+        <h2 className="mt-2 text-xl font-medium text-[var(--text-primary)]">
+          {project} n’a pas encore de séquence
+        </h2>
+        <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)]">
+          Un storyboard se construit par séquences, puis par scènes. Créez la première séquence
+          pour commencer le découpage. Aucune donnée d’un autre projet n’est reprise ici.
+        </p>
+        <Button variant="primary" className="mt-5" onClick={onCreate}>
+          <Plus size={14} />
+          Créer la première séquence
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function ViewLink({
+  href,
   active,
-  onClick,
   icon: Icon,
   label,
 }: {
+  href: string
   active: boolean
-  onClick: () => void
   icon: React.ElementType
   label: string
 }) {
   return (
-    <button
-      type="button"
+    <Link
+      href={href}
       role="tab"
       aria-selected={active}
-      onClick={onClick}
       className={cn(
         'flex items-center gap-2 rounded-[var(--radius-sm)] px-3 py-1.5 text-sm transition-colors duration-[var(--transition-fast)]',
         active
-          ? 'bg-[var(--interactive-dim)] text-[var(--interactive)]'
+          ? 'bg-[var(--interactive-dim)] text-[var(--text-primary)]'
           : 'text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)]'
       )}
     >
       <Icon size={14} />
       {label}
-    </button>
+    </Link>
   )
 }
 
@@ -442,7 +477,7 @@ function FilterChip({
       className={cn(
         'rounded-full border px-2.5 py-1 text-[11px] transition-colors',
         active
-          ? 'border-[var(--interactive)] bg-[var(--interactive-dim)] text-[var(--interactive)]'
+          ? 'border-[var(--interactive-border)] bg-[var(--interactive-dim)] text-[var(--text-primary)]'
           : 'border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
       )}
     >

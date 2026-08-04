@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useMuseionStore } from '@/store/museionStore'
+import { useProjectScope } from '@/components/layout/useProjectFromRoute'
+import { ProjectNotFound } from '@/components/layout/ProjectNotFound'
 import { AppShell } from '@/components/layout/AppShell'
 import { TraceBadge, StatusBadge } from '@/components/ui/Badge'
 import { SaveIndicator } from '@/components/ui/SaveIndicator'
@@ -29,14 +30,20 @@ const TABS: { id: TabId; label: string }[] = [
 ]
 
 export default function GilgameshDevelopmentPage() {
-  const { projects} = useMuseionStore()
+  const { slug, project } = useProjectScope()
   const [activeTab, setActiveTab] = useState<TabId>('vision')
 
-  const project = projects.find((p) => p.slug === 'gilgamesh')
-  if (!project) return null
+
+  if (!project) {
+    return (
+      <AppShell projectSlug={slug}>
+        <ProjectNotFound slug={slug} />
+      </AppShell>
+    )
+  }
 
   return (
-    <AppShell projectSlug="gilgamesh">
+    <AppShell projectSlug={slug}>
 
       <div className="flex-1 overflow-y-auto">
         {/* Header */}

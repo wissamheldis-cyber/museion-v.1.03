@@ -10,6 +10,8 @@ import {
   Search,
 } from 'lucide-react'
 import { useMuseionStore } from '@/store/museionStore'
+import { useProjectScope } from '@/components/layout/useProjectFromRoute'
+import { ProjectNotFound } from '@/components/layout/ProjectNotFound'
 import { AppShell } from '@/components/layout/AppShell'
 import { SaveIndicator } from '@/components/ui/SaveIndicator'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
@@ -25,11 +27,7 @@ type ViewMode = 'grid' | 'table'
 
 export default function PlansPage() {
 
-  const projects = useMuseionStore((s) => s.projects)
-  const sequences = useMuseionStore((s) => s.sequences)
-  const scenes = useMuseionStore((s) => s.scenes)
-  const shots = useMuseionStore((s) => s.shots)
-  const assets = useMuseionStore((s) => s.assets)
+  const { slug, project, sequences, scenes, shots, assets } = useProjectScope()
   const selectedShotId = useMuseionStore((s) => s.selectedShotId)
 
   const selectShot = useMuseionStore((s) => s.selectShot)
@@ -64,8 +62,6 @@ export default function PlansPage() {
     if (firstShot) selectShot(firstShot.id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  const project = projects.find((p) => p.slug === 'gilgamesh')
 
   const sceneById = useMemo(() => new Map(scenes.map((s) => [s.id, s])), [scenes])
   const sequenceById = useMemo(() => new Map(sequences.map((s) => [s.id, s])), [sequences])
@@ -103,11 +99,27 @@ export default function PlansPage() {
       .sort((a, b) => a.number - b.number)
   }, [shots, sceneById, sequenceFilter, placeFilter, cameraFilter, validatedFilter, query])
 
-  const selectedShot = shots.find((s) => s.id === selectedShotId)
+  const effectiveShotId = shots.some((s) => s.id === selectedShotId)
+    ? selectedShotId
+    : (shots[0]?.id ?? null)
+
+  useEffect(() => {
+    if (selectedShotId !== effectiveShotId) {
+      selectShot(effectiveShotId)
+    }
+  }, [selectedShotId, effectiveShotId, selectShot])
+
+  const selectedShot = shots.find((s) => s.id === effectiveShotId)
   const selectedScene = selectedShot ? sceneById.get(selectedShot.sceneId) : undefined
   const selectedSequence = selectedScene ? sequenceById.get(selectedScene.sequenceId) : undefined
 
-  if (!project) return null
+  if (!project) {
+    return (
+      <AppShell projectSlug={slug}>
+        <ProjectNotFound slug={slug} />
+      </AppShell>
+    )
+  }
 
   const handleAddShot = () => {
     const anchorScene = selectedScene ?? scenes[0]
@@ -116,7 +128,7 @@ export default function PlansPage() {
   }
 
   return (
-    <AppShell projectSlug="gilgamesh">
+    <AppShell projectSlug={slug}>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="border-b border-[var(--border-subtle)] bg-[var(--bg-base)]/90 px-6 py-4 backdrop-blur-xl">
@@ -225,7 +237,7 @@ export default function PlansPage() {
             </p>
 
             {viewMode === 'grid' ? (
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3">
+              <div data-tour="shot-grid" className="grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3">
                 {visibleShots.map((shot) => (
                   <ShotCard
                     key={shot.id}
@@ -233,7 +245,7 @@ export default function PlansPage() {
                     scene={sceneById.get(shot.sceneId)}
                     sequence={sequenceById.get(sceneById.get(shot.sceneId)?.sequenceId ?? '')}
                     assets={assets}
-                    selected={shot.id === selectedShotId}
+                    selected={shot.id === effectiveShotId}
                     onSelect={() => selectShot(shot.id)}
                     onToggleValidated={() => setShotValidated(shot.id, !shot.validated)}
                     onDuplicate={() => duplicateShot(shot.id)}
@@ -253,7 +265,7 @@ export default function PlansPage() {
             ) : (
               <ShotTable
                 shots={visibleShots}
-                selectedShotId={selectedShotId}
+                selectedShotId={effectiveShotId}
                 onSelect={selectShot}
                 sceneTitle={(sceneId) => sceneById.get(sceneId)?.title ?? '—'}
                 onAdd={handleAddShot}
@@ -262,13 +274,13 @@ export default function PlansPage() {
           </div>
 
           {inspectorOpen && (
-            <div className="w-[340px] shrink-0 border-l border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+            <div data-tour="shot-inspector" className="w-[340px] shrink-0 border-l border-[var(--border-subtle)] bg-[var(--bg-surface)]">
               <ShotInspector
                 shot={selectedShot}
                 scene={selectedScene}
                 sequence={selectedSequence}
                 assets={assets}
-                projectSlug="gilgamesh"
+                projectSlug={slug}
                 onUpdate={(patch) => selectedShot && updateShot(selectedShot.id, patch)}
                 onToggleValidated={() =>
                   selectedShot && setShotValidated(selectedShot.id, !selectedShot.validated)

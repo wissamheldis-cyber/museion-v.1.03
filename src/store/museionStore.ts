@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type {
   Project,
+  RenderJob,
   AuthSession,
   StudioProfile,
   LoglineVersion,
@@ -11,6 +12,7 @@ import type {
   ProjectVision,
   Synopsis,
   Treatment,
+  TourState,
 } from '@/lib/types'
 import type {
   Asset,
@@ -37,13 +39,21 @@ import {
   type TransitionCheck,
   type TransitionOptions,
 } from '@/lib/assetLifecycle'
+import { createWorkflow } from '@/lib/workflow'
+import {
+  bootstrapProject,
+  uniqueSlug,
+  validateNewProject,
+  type FieldErrors,
+  type NewProjectInput,
+} from '@/lib/projectBootstrapper'
 import { generateId } from '@/lib/utils'
 
 // ============================================================
 // Schema versionné
 // ============================================================
 
-const SCHEMA_VERSION = 2
+const SCHEMA_VERSION = 3
 
 const DECIDED_BY = 'Administrateur'
 
@@ -66,6 +76,11 @@ interface MuseionState {
 
   // Projects
   addProject: (project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => Project
+  createProject: (
+    input: NewProjectInput
+  ) => { ok: true; project: Project } | { ok: false; errors: FieldErrors }
+  duplicateProject: (projectId: string, title?: string) => Project | undefined
+  resetDemoProject: () => void
   updateProject: (id: string, patch: Partial<Project>) => void
   toggleFavorite: (id: string) => void
   archiveProject: (id: string) => void
@@ -108,9 +123,28 @@ interface MuseionState {
   edges: StoryboardEdge[]
   assets: Asset[]
   assetJournal: AssetJournalEntry[]
+  jobs: RenderJob[]
   canvasViewport: { x: number; y: number; zoom: number }
   selectedSceneId: string | null
   selectedShotId: string | null
+
+  // ---- Démonstration guidée ----
+  demoIntroDismissed: boolean
+  tour: TourState
+  dismissDemoIntro: () => void
+  startTour: (tourId: string, projectId: string) => void
+  goToTourStep: (index: number) => void
+  nextTourStep: (total: number) => void
+  prevTourStep: () => void
+  skipTour: () => void
+  exitTour: () => void
+  completeTour: () => void
+  replayTour: (tourId: string, projectId: string) => void
+
+  // Séquences
+  addSequence: (projectId: string, patch?: Partial<Sequence>) => Sequence
+  updateSequence: (sequenceId: string, patch: Partial<Sequence>) => void
+  removeSequence: (sequenceId: string) => void
 
   // Scènes
   addScene: (sequenceId: string, patch?: Partial<StoryboardScene>) => StoryboardScene
@@ -151,6 +185,34 @@ interface MuseionState {
   attachAssetToScene: (assetId: string, sceneId: string) => void
   attachAssetToShot: (assetId: string, shotId: string) => void
   detachAssetFromScene: (sceneId: string) => void
+}
+
+// ============================================================
+// Démonstration
+// ============================================================
+
+export const DEMO_PROJECT_ID = 'proj-gilgamesh'
+export const DEMO_TOUR_ID = 'gilgamesh-v1'
+
+const EMPTY_TOUR: TourState = {
+  activeTourId: null,
+  projectId: null,
+  stepIndex: 0,
+  completedTourIds: [],
+  skipped: false,
+}
+
+/** Copie fraîche du projet de démonstration, jamais partagée par référence. */
+function demoProjectSnapshot(): Project {
+  const source = DEMO_PROJECTS.find((p) => p.id === DEMO_PROJECT_ID)
+  if (!source) throw new Error('Projet de démonstration introuvable')
+  return JSON.parse(JSON.stringify(source)) as Project
+}
+
+const DEMO_SCENE_IDS = new Set(DEMO_SCENES_WITH_ASSETS.map((s) => s.id))
+
+function isDemoEdge(edge: StoryboardEdge): boolean {
+  return DEMO_SCENE_IDS.has(edge.source) || DEMO_SCENE_IDS.has(edge.target)
 }
 
 // ============================================================
@@ -221,6 +283,153 @@ export const useMuseionStore = create<MuseionState>()(
         }))
         get().triggerSaveIndicator()
         return project
+      },
+
+      createProject: (input) => {
+        const result = validateNewProject(input)
+        if (!result.ok) return result
+
+        const project = bootstrapProject(result.data, {
+          existingSlugs: get().projects.map((p) => p.slug),
+        })
+
+        set((state) => ({
+          projects: [project, ...state.projects],
+          lastSavedAt: project.createdAt,
+        }))
+        get().triggerSaveIndicator()
+        return { ok: true, project }
+      },
+
+      duplicateProject: (projectId, title) => {
+        const state = get()
+        const source = state.projects.find((p) => p.id === projectId)
+        if (!source) return undefined
+
+        const now = new Date().toISOString()
+        const newId = `proj-${generateId()}`
+        const nextTitle = title?.trim() || `${source.title} (copie)`
+        const copy: Project = {
+          ...source,
+          id: newId,
+          slug: uniqueSlug(nextTitle, state.projects.map((p) => p.slug)),
+          title: nextTitle,
+          // Une copie personnelle n'est jamais une démonstration.
+          isDemo: false,
+          demoVersion: undefined,
+          isFavorite: false,
+          isArchived: false,
+          createdAt: now,
+          updatedAt: now,
+          lastSavedAt: now,
+        }
+
+        // Le storyboard est recopié en réattribuant tous les identifiants,
+        // pour que rien ne soit partagé entre les deux projets.
+        const sequenceMap = new Map<string, string>()
+        const sceneMap = new Map<string, string>()
+        const assetMap = new Map<string, string>()
+
+        const sequences = state.sequences
+          .filter((q) => q.projectId === projectId)
+          .map((q) => {
+            const id = generateId()
+            sequenceMap.set(q.id, id)
+            return { ...q, id, projectId: newId }
+          })
+
+        const assets: Asset[] = state.assets
+          .filter((a) => a.projectId === projectId && a.status !== 'deleted')
+          .map((a) => {
+            const id = generateId()
+            assetMap.set(a.id, id)
+            return {
+              ...a,
+              id,
+              projectId: newId,
+              sceneId: undefined,
+              versions: [],
+              relations: [],
+            }
+          })
+
+        const scenes: StoryboardScene[] = state.scenes
+          .filter((sc) => sc.projectId === projectId)
+          .map((sc) => {
+            const id = generateId()
+            sceneMap.set(sc.id, id)
+            return {
+              ...sc,
+              id,
+              projectId: newId,
+              sequenceId: sequenceMap.get(sc.sequenceId) ?? sc.sequenceId,
+              assetId: sc.assetId ? assetMap.get(sc.assetId) : undefined,
+            }
+          })
+
+        for (const asset of assets) {
+          const original = state.assets.find((a) => assetMap.get(a.id) === asset.id)
+          if (original?.sceneId) asset.sceneId = sceneMap.get(original.sceneId)
+        }
+
+        const shots = state.shots
+          .filter((sh) => sh.projectId === projectId)
+          .map((sh) => ({
+            ...sh,
+            id: generateId(),
+            projectId: newId,
+            sceneId: sceneMap.get(sh.sceneId) ?? sh.sceneId,
+            assetId: sh.assetId ? assetMap.get(sh.assetId) : undefined,
+          }))
+
+        const edges = state.edges
+          .filter((e) => sceneMap.has(e.source) && sceneMap.has(e.target))
+          .map((e) => ({
+            ...e,
+            id: generateId(),
+            source: sceneMap.get(e.source)!,
+            target: sceneMap.get(e.target)!,
+          }))
+
+        set((st) => ({
+          projects: [copy, ...st.projects],
+          sequences: [...st.sequences, ...sequences],
+          scenes: [...st.scenes, ...scenes],
+          shots: [...st.shots, ...shots],
+          edges: [...st.edges, ...edges],
+          assets: [...st.assets, ...assets],
+          lastSavedAt: now,
+        }))
+        get().triggerSaveIndicator()
+        return copy
+      },
+
+      resetDemoProject: () => {
+        // Remet la démonstration dans son état canonique, sans jamais
+        // toucher aux projets de l'utilisateur.
+        set((state) => ({
+          projects: state.projects.map((p) =>
+            p.id === DEMO_PROJECT_ID ? demoProjectSnapshot() : p
+          ),
+          sequences: [
+            ...state.sequences.filter((q) => q.projectId !== DEMO_PROJECT_ID),
+            ...DEMO_SEQUENCES,
+          ],
+          scenes: [
+            ...state.scenes.filter((sc) => sc.projectId !== DEMO_PROJECT_ID),
+            ...DEMO_SCENES_WITH_ASSETS,
+          ],
+          shots: [...state.shots.filter((sh) => sh.projectId !== DEMO_PROJECT_ID), ...DEMO_SHOTS],
+          edges: [...state.edges.filter((e) => !isDemoEdge(e)), ...DEMO_STORYBOARD_EDGES],
+          assets: [...state.assets.filter((a) => a.projectId !== DEMO_PROJECT_ID), ...DEMO_ASSETS],
+          jobs: state.jobs.filter((j) => j.projectId !== DEMO_PROJECT_ID),
+          assetJournal: [],
+          selectedSceneId: DEMO_SCENES_WITH_ASSETS[0]?.id ?? null,
+          selectedShotId: DEMO_SHOTS[0]?.id ?? null,
+          canvasViewport: { x: 0, y: 0, zoom: 0.75 },
+          lastSavedAt: new Date().toISOString(),
+        }))
+        get().triggerSaveIndicator()
       },
 
       updateProject: (id, patch) => {
@@ -434,12 +643,72 @@ export const useMuseionStore = create<MuseionState>()(
           edges: DEMO_STORYBOARD_EDGES,
           assets: DEMO_ASSETS,
           assetJournal: [],
+          jobs: [],
+          demoIntroDismissed: false,
+          tour: EMPTY_TOUR,
           canvasViewport: { x: 0, y: 0, zoom: 0.75 },
           selectedSceneId: DEMO_SCENES_WITH_ASSETS[0]?.id ?? null,
           selectedShotId: DEMO_SHOTS[0]?.id ?? null,
           lastSavedAt: new Date().toISOString(),
         })
       },
+
+      // ---- Démonstration guidée ----
+
+      dismissDemoIntro: () => set({ demoIntroDismissed: true }),
+
+      startTour: (tourId, projectId) =>
+        set((state) => ({
+          demoIntroDismissed: true,
+          tour: { ...state.tour, activeTourId: tourId, projectId, stepIndex: 0, skipped: false },
+        })),
+
+      goToTourStep: (index) =>
+        set((state) => ({ tour: { ...state.tour, stepIndex: Math.max(0, index) } })),
+
+      nextTourStep: (total) =>
+        set((state) => ({
+          tour: { ...state.tour, stepIndex: Math.min(total - 1, state.tour.stepIndex + 1) },
+        })),
+
+      prevTourStep: () =>
+        set((state) => ({
+          tour: { ...state.tour, stepIndex: Math.max(0, state.tour.stepIndex - 1) },
+        })),
+
+      skipTour: () =>
+        set((state) => ({
+          demoIntroDismissed: true,
+          tour: { ...state.tour, activeTourId: null, projectId: null, skipped: true },
+        })),
+
+      exitTour: () =>
+        set((state) => ({ tour: { ...state.tour, activeTourId: null, projectId: null } })),
+
+      completeTour: () =>
+        set((state) => ({
+          tour: {
+            ...state.tour,
+            activeTourId: null,
+            projectId: null,
+            completedTourIds: state.tour.completedTourIds.includes(state.tour.activeTourId ?? '')
+              ? state.tour.completedTourIds
+              : [...state.tour.completedTourIds, state.tour.activeTourId ?? ''].filter(Boolean),
+          },
+        })),
+
+      replayTour: (tourId, projectId) =>
+        set((state) => ({
+          demoIntroDismissed: true,
+          tour: {
+            ...state.tour,
+            activeTourId: tourId,
+            projectId,
+            stepIndex: 0,
+            skipped: false,
+            completedTourIds: state.tour.completedTourIds.filter((id) => id !== tourId),
+          },
+        })),
 
       // ---- Save indicator ----
 
@@ -458,22 +727,80 @@ export const useMuseionStore = create<MuseionState>()(
       edges: DEMO_STORYBOARD_EDGES,
       assets: DEMO_ASSETS,
       assetJournal: [],
+      jobs: [],
+      demoIntroDismissed: false,
+      tour: EMPTY_TOUR,
       canvasViewport: { x: 0, y: 0, zoom: 0.75 },
       selectedSceneId: DEMO_SCENES_WITH_ASSETS[0]?.id ?? null,
       selectedShotId: DEMO_SHOTS[0]?.id ?? null,
+
+      // ---- Séquences ----
+
+      addSequence: (projectId, patch) => {
+        const siblings = get().sequences.filter((q) => q.projectId === projectId)
+        const sequence: Sequence = {
+          id: generateId(),
+          projectId,
+          number: siblings.length + 1,
+          title: `Séquence ${siblings.length + 1}`,
+          description: '',
+          color: '#ececea',
+          order: siblings.length,
+          ...patch,
+        }
+        set((state) => ({ sequences: [...state.sequences, sequence] }))
+        get().triggerSaveIndicator()
+        return sequence
+      },
+
+      updateSequence: (sequenceId, patch) => {
+        set((state) => ({
+          sequences: state.sequences.map((q) => (q.id === sequenceId ? { ...q, ...patch } : q)),
+        }))
+        get().triggerSaveIndicator()
+      },
+
+      removeSequence: (sequenceId) => {
+        set((state) => {
+          const sceneIds = state.scenes.filter((sc) => sc.sequenceId === sequenceId).map((sc) => sc.id)
+          const remainingScenes = state.scenes.filter((sc) => sc.sequenceId !== sequenceId)
+          return {
+            sequences: state.sequences.filter((q) => q.id !== sequenceId),
+            scenes: remainingScenes,
+            shots: state.shots.filter((sh) => !sceneIds.includes(sh.sceneId)),
+            edges: state.edges.filter(
+              (e) => !sceneIds.includes(e.source) && !sceneIds.includes(e.target)
+            ),
+            assets: state.assets.map((a) =>
+              a.sceneId && sceneIds.includes(a.sceneId) ? { ...a, sceneId: undefined } : a
+            ),
+            selectedSceneId:
+              state.selectedSceneId && sceneIds.includes(state.selectedSceneId)
+                ? (remainingScenes[0]?.id ?? null)
+                : state.selectedSceneId,
+          }
+        })
+        get().triggerSaveIndicator()
+      },
 
       // ---- Scènes ----
 
       addScene: (sequenceId, patch) => {
         const state = get()
         const sequence = state.sequences.find((s) => s.id === sequenceId)
+        const projectId = patch?.projectId ?? sequence?.projectId
+        if (!projectId) {
+          throw new Error(`Séquence introuvable, impossible de rattacher la scène : ${sequenceId}`)
+        }
         const siblings = state.scenes.filter((s) => s.sequenceId === sequenceId)
-        const maxNumber = state.scenes.reduce((max, s) => Math.max(max, s.number), 0)
+        const maxNumber = state.scenes
+          .filter((s) => s.projectId === projectId)
+          .reduce((max, s) => Math.max(max, s.number), 0)
 
         const scene: StoryboardScene = {
           id: generateId(),
           sequenceId,
-          projectId: patch?.projectId ?? sequence?.projectId ?? 'proj-gilgamesh',
+          projectId,
           number: maxNumber + 1,
           title: `Scène ${String(maxNumber + 1).padStart(2, '0')}`,
           location: 'Lieu à définir',
@@ -622,13 +949,19 @@ export const useMuseionStore = create<MuseionState>()(
       addShot: (sceneId, patch) => {
         const state = get()
         const scene = state.scenes.find((s) => s.id === sceneId)
-        const maxNumber = state.shots.reduce((max, s) => Math.max(max, s.number), 0)
+        if (!scene) {
+          throw new Error(`Scène introuvable, impossible de rattacher le plan : ${sceneId}`)
+        }
+        const projectId = scene.projectId
+        const maxNumber = state.shots
+          .filter((s) => s.projectId === projectId)
+          .reduce((max, s) => Math.max(max, s.number), 0)
         const shot: Shot = {
           id: generateId(),
           sceneId,
-          projectId: scene?.projectId ?? 'proj-gilgamesh',
+          projectId,
           number: maxNumber + 1,
-          type: scene?.mainShotType ?? 'wide',
+          type: scene.mainShotType ?? 'wide',
           focal: '35 mm',
           camera: 'ARRI Alexa 35',
           sensor: 'Super 35 — ALEV 4',
@@ -637,15 +970,15 @@ export const useMuseionStore = create<MuseionState>()(
           angle: 'Niveau du regard',
           height: '1,60 m',
           filter: 'Aucun',
-          duration: scene?.duration ?? 5,
+          duration: scene.duration,
           frameRate: 24,
-          lighting: scene?.lighting ?? 'diffuse',
-          decor: scene?.location ?? '',
-          continuity: scene ? `${scene.moment} — à préciser` : '',
+          lighting: scene.lighting,
+          decor: scene.location,
+          continuity: `${scene.moment} — à préciser`,
           risks: '',
           references: [],
           notes: '',
-          order: state.shots.length,
+          order: state.shots.filter((s) => s.projectId === projectId).length,
           validated: false,
           ...patch,
         }
@@ -874,6 +1207,23 @@ export const useMuseionStore = create<MuseionState>()(
             canvasViewport: { x: 0, y: 0, zoom: 0.75 },
             selectedSceneId: DEMO_SCENES_WITH_ASSETS[0]?.id ?? null,
             selectedShotId: DEMO_SHOTS[0]?.id ?? null,
+          }
+        }
+
+        // v2 → v3 : workflow par projet, file de production, démonstration guidée
+        if (version < 3) {
+          state = {
+            ...state,
+            schemaVersion: 3,
+            projects: (state.projects ?? []).map((p) => ({
+              ...p,
+              workflow: p.workflow ?? createWorkflow(),
+              isDemo: p.id === DEMO_PROJECT_ID ? true : p.isDemo,
+              demoVersion: p.id === DEMO_PROJECT_ID ? '1.0.0' : p.demoVersion,
+            })),
+            jobs: state.jobs ?? [],
+            demoIntroDismissed: state.demoIntroDismissed ?? false,
+            tour: state.tour ?? EMPTY_TOUR,
           }
         }
 

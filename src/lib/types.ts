@@ -219,6 +219,55 @@ export interface ProjectCanon {
   synopsis?: Synopsis
 }
 
+// ---- Workflow de création ----
+
+export type WorkflowStepId =
+  | 'idea'
+  | 'script'
+  | 'bible'
+  | 'characters'
+  | 'storyboard'
+  | 'previs'
+  | 'plans'
+  | 'production'
+  | 'review'
+  | 'delivery'
+
+export type WorkflowStepStatus = 'todo' | 'in-progress' | 'done'
+
+export interface WorkflowStep {
+  id: WorkflowStepId
+  label: string
+  order: number
+  status: WorkflowStepStatus
+}
+
+// ---- File de production ----
+
+export interface RenderJob {
+  id: string
+  projectId: string
+  sceneId?: string
+  shotId?: string
+  label: string
+  kind: 'image' | 'video'
+  status: 'queued' | 'running' | 'done' | 'failed' | 'cancelled'
+  createdAt: string
+}
+
+// ---- Démonstration guidée ----
+
+export interface TourState {
+  /** Identifiant de la visite en cours, null si aucune. */
+  activeTourId: string | null
+  /** Projet sur lequel la visite s'exécute — jamais un autre. */
+  projectId: string | null
+  stepIndex: number
+  completedTourIds: string[]
+  /** Visite explicitement ignorée par l'utilisateur. */
+  skipped: boolean
+}
+
 // ---- Projet principal ----
 
 export interface Project {
@@ -237,9 +286,13 @@ export interface Project {
   characters: Character[]
   artisticDossier?: ArtisticDossier
   canon?: ProjectCanon
+  workflow: WorkflowStep[]
   traces: TraceItem[]
   isFavorite: boolean
   isArchived: boolean
+  /** Projet de démonstration guidée, réinitialisable. */
+  isDemo?: boolean
+  demoVersion?: string
   coverImageUrl?: string
   completionPercent: number
   createdAt: string

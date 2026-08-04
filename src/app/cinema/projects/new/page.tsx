@@ -8,8 +8,9 @@ import { AppShell } from '@/components/layout/AppShell'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
 import { Check, ChevronRight } from 'lucide-react'
-import { cn, slugify, countWords } from '@/lib/utils'
+import { cn, countWords } from '@/lib/utils'
 import type { ProjectFormat, ProjectGenre } from '@/lib/types'
+import { validateNewProject, type FieldErrors } from '@/lib/projectBootstrapper'
 
 type Step = 1 | 2 | 3 | 4
 
@@ -52,7 +53,7 @@ const GENRE_OPTIONS: { value: ProjectGenre; label: string }[] = [
 
 export default function NewProjectPage() {
   const router = useRouter()
-  const { addProject} = useMuseionStore()
+  const createProject = useMuseionStore((st) => st.createProject)
   const [step, setStep] = useState<Step>(1)
   const [form, setForm] = useState<NewProjectForm>({
     title: '',
@@ -64,7 +65,7 @@ export default function NewProjectPage() {
     universe: '',
     genre: 'drama',
   })
-  const [errors, setErrors] = useState<Partial<NewProjectForm>>({})
+  const [errors, setErrors] = useState<FieldErrors>({})
 
   const session = localAuthAdapter.getSession()
   if (!session) return null
@@ -74,12 +75,29 @@ export default function NewProjectPage() {
     setErrors((e) => ({ ...e, [key]: undefined }))
   }
 
+  const toInput = () => ({
+    title: form.title,
+    logline: form.logline,
+    format: form.type,
+    genre: form.genre,
+    duration: form.duration,
+    audience: form.audience,
+    universe: form.universe,
+    visualAmbition: form.visualAmbition,
+  })
+
   const validateStep1 = () => {
-    const errs: Partial<NewProjectForm> = {}
-    if (!form.title.trim()) errs.title = 'Le titre est requis'
-    if (!form.logline.trim()) errs.logline = 'La logline est requise'
-    setErrors(errs)
-    return Object.keys(errs).length === 0
+    const result = validateNewProject(toInput())
+    if (result.ok) {
+      setErrors({})
+      return true
+    }
+    // L'étape 1 ne porte que le titre et la logline.
+    const stepErrors: FieldErrors = {}
+    if (result.errors.title) stepErrors.title = result.errors.title
+    if (result.errors.logline) stepErrors.logline = result.errors.logline
+    setErrors(stepErrors)
+    return Object.keys(stepErrors).length === 0
   }
 
   const handleNext = () => {
@@ -88,41 +106,14 @@ export default function NewProjectPage() {
   }
 
   const handleCreate = () => {
-    if (!validateStep1()) { setStep(1); return }
-    const slug = slugify(form.title) || `projet-${Date.now()}`
-    const project = addProject({
-      slug,
-      title: form.title,
-      status: 'development',
-      format: form.type,
-      genre: form.genre,
-      logline: form.logline,
-      loglineHistory: form.logline ? [{
-        id: `logv-${Date.now()}`,
-        content: form.logline,
-        wordCount: countWords(form.logline),
-        savedAt: new Date().toISOString(),
-        label: 'Version initiale',
-      }] : [],
-      vision: form.visualAmbition ? {
-        promise: form.logline,
-        intention: '',
-        theme: '',
-        world: form.universe,
-        conflict: '',
-        arc: '',
-        tone: '',
-        audience: form.audience,
-        duration: form.duration,
-        references: [],
-      } : undefined,
-      characters: [],
-      traces: [],
-      isFavorite: false,
-      isArchived: false,
-      completionPercent: 5,
-    })
-    router.push(`/cinema/projects/${project.slug}`)
+    const result = createProject(toInput())
+    if (!result.ok) {
+      setErrors(result.errors)
+      setStep(1)
+      return
+    }
+    // Le slug est unique : il est calculé par le bootstrapper.
+    router.push(`/cinema/projects/${result.project.slug}`)
   }
 
   // Blueprint dynamique

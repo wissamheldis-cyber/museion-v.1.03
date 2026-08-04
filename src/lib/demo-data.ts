@@ -1,3 +1,5 @@
+import { createWorkflow } from '@/lib/workflow'
+import type { WorkflowStepId, WorkflowStepStatus } from '@/lib/types'
 import type {
   Project,
   Character,
@@ -280,10 +282,23 @@ const gilgameshArtisticDossier: ArtisticDossier = {
 // PROJETS DE DÉMONSTRATION
 // ============================================================
 
+/** Avancement figé de la démonstration Gilgamesh. */
+const DEMO_WORKFLOW_STATUS: Partial<Record<WorkflowStepId, WorkflowStepStatus>> = {
+  idea: 'done',
+  script: 'done',
+  bible: 'done',
+  characters: 'done',
+  storyboard: 'in-progress',
+  previs: 'todo',
+  plans: 'in-progress',
+}
+
 export const DEMO_PROJECTS: Project[] = [
   {
     id: 'proj-gilgamesh',
     slug: 'gilgamesh',
+    isDemo: true,
+    demoVersion: '1.0.0',
     title: 'Gilgamesh',
     status: 'development',
     format: 'feature',
@@ -341,6 +356,8 @@ export const DEMO_PROJECTS: Project[] = [
         date: '2026-07-25T00:00:00Z',
       },
     ],
+    workflow: createWorkflow(DEMO_WORKFLOW_STATUS),
+
     isFavorite: true,
     isArchived: false,
     coverImageUrl: '/reference-ui/gilgamesh-cover.jpg',
@@ -375,6 +392,8 @@ export const DEMO_PROJECTS: Project[] = [
         date: '2026-06-20T00:00:00Z',
       },
     ],
+    workflow: createWorkflow(),
+
     isFavorite: true,
     isArchived: false,
     coverImageUrl: '/reference-ui/akhenaton-cover.jpg',
@@ -401,6 +420,8 @@ export const DEMO_PROJECTS: Project[] = [
     ],
     characters: [],
     traces: [],
+    workflow: createWorkflow(),
+
     isFavorite: false,
     isArchived: false,
     coverImageUrl: '/reference-ui/alexandre-cover.jpg',
@@ -435,6 +456,8 @@ export const DEMO_PROJECTS: Project[] = [
         date: '2026-07-20T00:00:00Z',
       },
     ],
+    workflow: createWorkflow(),
+
     isFavorite: false,
     isArchived: false,
     completionPercent: 10,
@@ -460,6 +483,8 @@ export const DEMO_PROJECTS: Project[] = [
     ],
     characters: [],
     traces: [],
+    workflow: createWorkflow(),
+
     isFavorite: false,
     isArchived: false,
     completionPercent: 5,
@@ -477,6 +502,8 @@ export const DEMO_PROJECTS: Project[] = [
     loglineHistory: [],
     characters: [],
     traces: [],
+    workflow: createWorkflow(),
+
     isFavorite: false,
     isArchived: false,
     completionPercent: 0,
