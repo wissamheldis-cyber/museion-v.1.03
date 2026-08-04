@@ -17,7 +17,7 @@ export default function DeliverablesPage() {
   const [newTitle, setNewTitle] = useState("");
   const [selectedPkgId, setSelectedPkgId] = useState<string|null>(null);
 
-  if (!project) return <ProjectNotFound slug={slug} />;
+  if (!project) return <AppShell projectSlug={slug}><ProjectNotFound slug={slug} /></AppShell>;
 
   const packages = store.deliverablePackages?.filter(p => p.projectId === projectId) || [];
   const selectedPkg = packages.find(p => p.id === selectedPkgId);

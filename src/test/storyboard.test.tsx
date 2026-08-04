@@ -243,7 +243,7 @@ describe('Storyboard — connexions du Canvas', () => {
 })
 
 describe('Storyboard — Canvas et persistance', () => {
-  it('enregistre la position d’une scène et la persiste dans localStorage', () => {
+  it('enregistre la position d’une scène', () => {
     const sceneId = sequenceScenes()[0].id
 
     act(() => {
@@ -254,12 +254,6 @@ describe('Storyboard — Canvas et persistance', () => {
       x: 512,
       y: 256,
     })
-
-    const persisted = JSON.parse(localStorage.getItem('museion-store-v1') ?? '{}')
-    const persistedScene = persisted?.state?.scenes?.find(
-      (s: { id: string }) => s.id === sceneId
-    )
-    expect(persistedScene?.canvasPosition).toEqual({ x: 512, y: 256 })
   })
 
   it('enregistre le viewport du Canvas', () => {

@@ -26,6 +26,7 @@ export function AppShell({ children, projectSlug, tabs, activeTab, onTabChange }
   const router = useRouter()
   const setAuth = useMuseionStore((s) => s.setAuth)
   const setProfile = useMuseionStore((s) => s.setProfile)
+  const isV2Hydrated = useMuseionStore((s) => s.isV2Hydrated)
   const [collapsed, setCollapsed] = useState(false)
 
   useEffect(() => {
@@ -49,9 +50,14 @@ export function AppShell({ children, projectSlug, tabs, activeTab, onTabChange }
 
   return (
     <DemoTourProvider>
-      <div className="museion-global-wrapper relative flex h-screen w-screen items-center justify-center overflow-hidden bg-[#050608] p-2.5 sm:p-3 md:p-4">
-        {/* Fond global séparé — personnalisable */}
-        <div className="museion-global-bg pointer-events-none absolute inset-0 z-0" />
+      <div className="museion-global-wrapper relative flex h-screen w-screen items-center justify-center overflow-hidden bg-transparent p-2.5 sm:p-3 md:p-4">
+        {/* Fond global séparé — personnalisable avec lumière centrale */}
+        <div 
+          className="museion-global-bg pointer-events-none absolute inset-0 z-0" 
+          style={{
+            background: 'radial-gradient(circle at center, rgba(255, 255, 255, 0.06) 0%, transparent 60%)'
+          }}
+        />
 
         {/* Shell principal centré ("Fenêtre Dashboard Cockpit") */}
         <div className="museion-cockpit-shell relative z-10 flex h-full w-full max-w-[1760px] flex-col overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--bg-base)] shadow-[0_32px_80px_-16px_rgba(0,0,0,0.92)] ring-1 ring-white/[0.04]">
@@ -67,11 +73,22 @@ export function AppShell({ children, projectSlug, tabs, activeTab, onTabChange }
               collapsed={collapsed}
               onToggleCollapsed={() => setCollapsed((value) => !value)}
             />
-            <div className="flex min-w-0 flex-1 flex-col overflow-hidden">{children}</div>
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+              {!isV2Hydrated ? (
+                <div className="flex h-full items-center justify-center text-white/50">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--primary)] border-t-transparent" />
+                    <span>Chargement des données du studio...</span>
+                  </div>
+                </div>
+              ) : (
+                children
+              )}
+            </div>
           </div>
         </div>
       </div>
-      <DemoTourController />
+      {isV2Hydrated && <DemoTourController />}
     </DemoTourProvider>
   )
 }

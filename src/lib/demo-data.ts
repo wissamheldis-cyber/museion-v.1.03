@@ -91,7 +91,7 @@ const gilgameshCharacters: Character[] = [
     costume: "Robe royale en laine brodée d'or (Acte I), peaux de lion après la mort d'Enkidu (Acte III)",
     continuityNotes: "Transformation physique progressive du roi au deuillant. Cheveux et barbe qui poussent pendant l'errance.",
     references: [],
-    imageUrl: '/reference-ui/gilgamesh-char.jpg',
+    imageUrl: '/demo-gilgamesh/gilgamesh-char.jpg',
   },
   {
     id: 'char-enkidu',
@@ -109,7 +109,7 @@ const gilgameshCharacters: Character[] = [
     costume: "Peaux d'animaux (Acte I), vêtements simples offerts par Gilgamesh (Acte II)",
     continuityNotes: "Dégradation physique progressive pendant les 12 jours de maladie",
     references: [],
-    imageUrl: '/reference-ui/enkidu-char.jpg',
+    imageUrl: '/demo-gilgamesh/enkidu-char.jpg',
   },
   {
     id: 'char-shamhat',
@@ -336,21 +336,24 @@ export const DEMO_PROJECTS: Project[] = [
     traces: [
       {
         id: 'trace-001',
-        status: 'decision',
+        projectId: 'gilgamesh',
+    status: 'decision',
         content: 'Pas de narration en voix off — tout doit être montré.',
         context: 'Décision de mise en scène fondamentale',
         date: '2026-07-10T00:00:00Z',
       },
       {
         id: 'trace-002',
-        status: 'hypothesis',
+        projectId: 'gilgamesh',
+    status: 'hypothesis',
         content: 'Tourner en Jordanie pour les scènes de désert.',
         toValidate: 'Budget et faisabilité logistique',
         date: '2026-07-20T00:00:00Z',
       },
       {
         id: 'trace-003',
-        status: 'open-question',
+        projectId: 'gilgamesh',
+    status: 'open-question',
         content: 'Langue du film : français, anglais, ou sumérienne sous-titrée ?',
         priority: 'high',
         date: '2026-07-25T00:00:00Z',
@@ -360,7 +363,7 @@ export const DEMO_PROJECTS: Project[] = [
 
     isFavorite: true,
     isArchived: false,
-    coverImageUrl: '/reference-ui/gilgamesh-cover.jpg',
+    coverImageUrl: '/demo-gilgamesh/cover.jpg',
     completionPercent: 62,
     createdAt: '2026-07-01T08:00:00Z',
     updatedAt: '2026-07-28T09:15:00Z',
@@ -387,7 +390,8 @@ export const DEMO_PROJECTS: Project[] = [
     traces: [
       {
         id: 'trace-akh-001',
-        status: 'decision',
+        projectId: 'gilgamesh',
+    status: 'decision',
         content: "Adopter le point de vue d'Akhenaton, pas celui de ses opposants.",
         date: '2026-06-20T00:00:00Z',
       },
@@ -450,7 +454,8 @@ export const DEMO_PROJECTS: Project[] = [
     traces: [
       {
         id: 'trace-civ-001',
-        status: 'open-question',
+        projectId: 'gilgamesh',
+    status: 'open-question',
         content: 'Format : 1 long documentaire ou série en 7 épisodes ?',
         priority: 'high',
         date: '2026-07-20T00:00:00Z',

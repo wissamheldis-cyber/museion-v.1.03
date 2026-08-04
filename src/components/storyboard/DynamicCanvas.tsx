@@ -246,7 +246,7 @@ function CanvasInner({
         proOptions={{ hideAttribution: true }}
         className="museion-canvas"
       >
-        <Background variant={BackgroundVariant.Dots} gap={22} size={1} color="#1a1c21" />
+        <Background variant={BackgroundVariant.Dots} gap={30} size={2} color="#ffffff" style={{ backgroundColor: '#000000' }} />
         <Controls
           showInteractive={false}
           className="!border-[var(--border-default)] !bg-[var(--bg-surface)]"

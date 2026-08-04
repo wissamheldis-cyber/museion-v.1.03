@@ -10,8 +10,13 @@ import { useMuseionStore } from '@/store/museionStore'
  */
 export function StoreHydration() {
   useEffect(() => {
+    // 2. Réhydrater les préférences UI
     void useMuseionStore.persist.rehydrate()
+
+    // 3. Charger les données métier V2
+    useMuseionStore.getState().initV2()
   }, [])
 
   return null
 }
+

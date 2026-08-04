@@ -25,7 +25,7 @@ export default function PrevisPage() {
   const [previewResult, setPreviewResult] = useState<Asset | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  if (!project) return <ProjectNotFound slug={slug} />;
+  if (!project) return <AppShell projectSlug={slug}><ProjectNotFound slug={slug} /></AppShell>;
 
   const filteredShots = shots.filter(s => s.sceneId === sceneId);
   const referenceAssets = (assets || []).filter(a => a.status === "canonical" || a.status === "approved");

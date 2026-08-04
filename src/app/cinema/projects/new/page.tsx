@@ -67,8 +67,7 @@ export default function NewProjectPage() {
   })
   const [errors, setErrors] = useState<FieldErrors>({})
 
-  const session = localAuthAdapter.getSession()
-  if (!session) return null
+
 
   const update = (key: keyof NewProjectForm, value: string) => {
     setForm((f) => ({ ...f, [key]: value }))

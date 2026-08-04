@@ -22,7 +22,7 @@ export default function ReviewPage() {
   const [newChecklist, setNewChecklist] = useState("");
   const [drawMode, setDrawMode] = useState(false);
 
-  if (!project) return <ProjectNotFound slug={slug} />;
+  if (!project) return <AppShell projectSlug={slug}><ProjectNotFound slug={slug} /></AppShell>;
 
   const selectedAsset = assets?.find(a => a.id === selectedAssetId);
   const compareAsset = assets?.find(a => a.id === compareAssetId);

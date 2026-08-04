@@ -10,7 +10,7 @@ import { DemoIntroDialog } from '@/components/tour/DemoIntroDialog'
 import { StatusBadge, TraceBadge } from '@/components/ui/Badge'
 import { ProgressBar } from '@/components/ui/ProgressBar'
 import { Button } from '@/components/ui/Button'
-import { WORKFLOW_STATUS_LABELS } from '@/lib/workflow'
+import { WORKFLOW_STATUS_LABELS, createWorkflow } from '@/lib/workflow'
 import { FORMAT_LABELS, cn, formatRelativeDate } from '@/lib/utils'
 import {
   FileText,
@@ -40,7 +40,7 @@ const SECTIONS = (slug: string) => [
 
 export default function ProjectWorkspacePage() {
   const router = useRouter()
-  const { slug, project, scenes, shots, sequences } = useProjectScope()
+  const { slug, project, traces, scenes, shots, sequences } = useProjectScope()
 
   if (!project) {
     return (
@@ -50,9 +50,9 @@ export default function ProjectWorkspacePage() {
     )
   }
 
-  const decisions = project.traces.filter((t) => t.status === 'decision')
-  const hypotheses = project.traces.filter((t) => t.status === 'hypothesis')
-  const questions = project.traces.filter((t) => t.status === 'open-question')
+  const decisions = traces.filter((t) => t.status === 'decision')
+  const hypotheses = traces.filter((t) => t.status === 'hypothesis')
+  const questions = traces.filter((t) => t.status === 'open-question')
 
   return (
     <AppShell projectSlug={slug}>
@@ -107,7 +107,7 @@ export default function ProjectWorkspacePage() {
           <section data-tour="workflow">
             <h2 className="label-caps mb-3">Phases du projet</h2>
             <ol className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-              {project.workflow.map((step) => (
+              {(project.workflow || createWorkflow()).map((step) => (
                 <li
                   key={step.id}
                   className={cn(
@@ -140,7 +140,7 @@ export default function ProjectWorkspacePage() {
           <section>
             <h2 className="label-caps mb-3">Logline</h2>
             <p className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-card)] px-4 py-3 text-sm italic leading-relaxed text-[var(--text-secondary)]">
-              &ldquo;{project.logline}&rdquo;
+              &ldquo;{project.logline || 'Logline non définie'}&rdquo;
             </p>
           </section>
 
@@ -167,11 +167,11 @@ export default function ProjectWorkspacePage() {
           </section>
 
           {/* Personnages */}
-          {project.characters.length > 0 && (
+          {(project.characters || []).length > 0 && (
             <section>
-              <h2 className="label-caps mb-4">Personnages ({project.characters.length})</h2>
+              <h2 className="label-caps mb-4">Personnages ({(project.characters || []).length})</h2>
               <div className="flex flex-wrap gap-3">
-                {project.characters.map((char) => (
+                {(project.characters || []).map((char) => (
                   <div
                     key={char.id}
                     className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-card)] px-4 py-3"

@@ -30,7 +30,7 @@ const TABS: { id: TabId; label: string }[] = [
 ]
 
 export default function GilgameshDevelopmentPage() {
-  const { slug, project } = useProjectScope()
+  const { slug, project, traces } = useProjectScope()
   const [activeTab, setActiveTab] = useState<TabId>('vision')
 
 
@@ -136,7 +136,7 @@ export default function GilgameshDevelopmentPage() {
                   Questions ouvertes
                 </p>
                 <div className="space-y-2">
-                  {project.traces
+                  {traces
                     .filter((t) => t.status === 'open-question')
                     .map((q) => (
                       <div key={q.id} className="text-xs text-[var(--text-secondary)] bg-[var(--bg-card)] rounded-[var(--radius-sm)] p-2.5 border border-[var(--border-subtle)]">
@@ -144,7 +144,7 @@ export default function GilgameshDevelopmentPage() {
                         <p className="leading-relaxed">{q.content}</p>
                       </div>
                     ))}
-                  {project.traces.filter((t) => t.status === 'open-question').length === 0 && (
+                  {traces.filter((t) => t.status === 'open-question').length === 0 && (
                     <p className="text-xs text-[var(--text-muted)]">Aucune question ouverte</p>
                   )}
                 </div>
@@ -156,7 +156,7 @@ export default function GilgameshDevelopmentPage() {
                   Décisions validées
                 </p>
                 <div className="space-y-2">
-                  {project.traces
+                  {traces
                     .filter((t) => t.status === 'decision')
                     .map((d) => (
                       <div key={d.id} className="text-xs text-[var(--text-secondary)] bg-[var(--bg-card)] rounded-[var(--radius-sm)] p-2.5 border border-[var(--border-subtle)]">

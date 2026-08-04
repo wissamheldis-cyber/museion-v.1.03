@@ -3,7 +3,7 @@
 import { useParams } from 'next/navigation'
 import { useMemo } from 'react'
 import { useMuseionStore } from '@/store/museionStore'
-import type { Project } from '@/lib/types'
+import type { Project, TraceItem } from '@/lib/types'
 import type { Asset, Sequence, Shot, StoryboardEdge, StoryboardScene } from '@/lib/types-storyboard'
 
 /** Slug de la route courante. Aucune valeur codée en dur. */
@@ -23,6 +23,8 @@ export interface ProjectScope {
   shots: Shot[]
   edges: StoryboardEdge[]
   assets: Asset[]
+  traces: TraceItem[]
+  isHydrating: boolean
 }
 
 /**
@@ -38,9 +40,16 @@ export function useProjectScope(): ProjectScope {
   const allShots = useMuseionStore((s) => s.shots)
   const allEdges = useMuseionStore((s) => s.edges)
   const allAssets = useMuseionStore((s) => s.assets)
+  const allTraces = useMuseionStore((s) => s.traces)
+  const isV2Hydrated = useMuseionStore((s) => s.isV2Hydrated)
 
   const project = useMemo(() => projects.find((p) => p.slug === slug), [projects, slug])
   const projectId = project?.id
+
+  const traces = useMemo(
+    () => allTraces.filter((t) => t.projectId === projectId),
+    [allTraces, projectId]
+  )
 
   const sequences = useMemo(
     () =>
@@ -75,10 +84,12 @@ export function useProjectScope(): ProjectScope {
     slug,
     project,
     notFound: Boolean(slug) && !project,
+    traces,
     sequences,
     scenes,
     shots,
     edges,
     assets,
+    isHydrating: !isV2Hydrated,
   }
 }

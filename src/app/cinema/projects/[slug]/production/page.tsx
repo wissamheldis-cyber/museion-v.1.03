@@ -16,7 +16,7 @@ export default function ProductionPage() {
   const [filter, setFilter] = useState("all");
   const [selectedJobId, setSelectedJobId] = useState<string|null>(null);
 
-  if (!project) return <ProjectNotFound slug={slug} />;
+  if (!project) return <AppShell projectSlug={slug}><ProjectNotFound slug={slug} /></AppShell>;
 
   const jobs = (store.productionJobs || []).filter(j => j.projectId === projectId);
   const filteredJobs = filter === "all" ? jobs : jobs.filter(j => j.status === filter);

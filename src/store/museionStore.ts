@@ -13,6 +13,7 @@ import type {
   Synopsis,
   Treatment,
   TourState,
+  TraceItem,
 } from '@/lib/types'
 import type {
   Asset,
@@ -60,6 +61,7 @@ import {
   type NewProjectInput,
 } from '@/lib/projectBootstrapper'
 import { generateId } from '@/lib/utils'
+import { localProvider } from '@/adapters/local/LocalDataAdapter'
 
 // ============================================================
 // Schema versionné
@@ -207,6 +209,7 @@ interface MuseionState {
   reviewChecklists: ReviewChecklist[]
   deliverablePackages: DeliverablePackage[]
   assetCollections: AssetCollection[]
+  traces: TraceItem[]
 
   addWritingMission: (projectId: string, title: string, target: WritingTarget, context: string) => WritingMission
   addWritingMessage: (missionId: string, role: 'user' | 'assistant', content: string, classification?: WritingClassification) => WritingMessage
@@ -237,6 +240,10 @@ interface MuseionState {
   addAssetToCollection: (collectionId: string, assetId: string) => void
   removeAssetFromCollection: (collectionId: string, assetId: string) => void
   removeAssetCollection: (collectionId: string) => void
+
+  // ---- V2 Initialization ----
+  isV2Hydrated: boolean
+  initV2: () => Promise<void>
 }
 
 // ============================================================
@@ -795,6 +802,55 @@ export const useMuseionStore = create<MuseionState>()(
       reviewChecklists: [],
       deliverablePackages: [],
       assetCollections: [],
+      traces: [],
+
+      // ---- V2 ----
+      isV2Hydrated: false,
+      initV2: async () => {
+        if (get().isV2Hydrated) return;
+        
+        // Simuler un appel réseau vers le store V2 asynchrone
+        const rawData = localProvider.exportData();
+        const data = JSON.parse(rawData);
+
+        let finalProjects = data.projects as unknown as Project[];
+        let finalAssets = data.assets as unknown as Asset[];
+        let finalSequences = data.sequences as unknown as Sequence[];
+        let finalScenes = data.scenes as unknown as StoryboardScene[];
+        let finalShots = data.shots as unknown as Shot[];
+        let finalEdges = data.edges as unknown as StoryboardEdge[];
+
+        // INJECTION GARANTIE DU PROJET GILGAMESH SI ABSENT
+        if (!finalProjects.some((p) => p.slug === 'gilgamesh')) {
+          // Utilise un require dynamique pour éviter des imports circulaires ou non résolus en haut de fichier
+          const { DEMO_PROJECTS } = require('@/lib/demo-data');
+          const { DEMO_ASSETS, DEMO_SEQUENCES, DEMO_SCENES_WITH_ASSETS, DEMO_SHOTS, DEMO_STORYBOARD_EDGES } = require('@/lib/demo-storyboard');
+          
+          finalProjects = [...finalProjects, ...DEMO_PROJECTS] as unknown as Project[];
+          finalAssets = [...finalAssets, ...DEMO_ASSETS] as unknown as Asset[];
+          finalSequences = [...finalSequences, ...DEMO_SEQUENCES] as unknown as Sequence[];
+          finalScenes = [...finalScenes, ...DEMO_SCENES_WITH_ASSETS] as unknown as StoryboardScene[];
+          finalShots = [...finalShots, ...DEMO_SHOTS] as unknown as Shot[];
+          finalEdges = [...finalEdges, ...DEMO_STORYBOARD_EDGES] as unknown as StoryboardEdge[];
+        }
+
+        set({
+          isV2Hydrated: true,
+          projects: finalProjects,
+          assets: finalAssets,
+          productionJobs: data.jobs as unknown as ProductionJob[],
+          writingMissions: data.missions as unknown as WritingMission[],
+          writingMessages: data.messages as unknown as WritingMessage[],
+          writingVariants: data.proposals as unknown as WritingVariant[],
+          reviewComments: data.comments as unknown as ReviewComment[],
+          deliverablePackages: data.deliverables as unknown as DeliverablePackage[],
+          sequences: finalSequences,
+          scenes: finalScenes,
+          shots: finalShots,
+          edges: finalEdges,
+          traces: data.traces as unknown as TraceItem[],
+        });
+      },
 
       // ---- Auth ----
 
@@ -1243,12 +1299,37 @@ export const useMuseionStore = create<MuseionState>()(
       addWritingMission: (projectId, title, target, context) => {
         const mission: WritingMission = { id: generateId(), projectId, title, target, context, createdAt: new Date().toISOString() }
         set((state) => ({ writingMissions: [...state.writingMissions, mission] }))
+        
+        // Optimistic sync
+        localProvider.createMission({
+          studioId: (get().projects.find(p => p.id === projectId) as any)?.studioId || '',
+          projectId, title, target, contextSnapshot: context, status: 'active'
+        }).catch((err) => {
+          console.error("Rollback addWritingMission", err)
+          set((state) => ({ writingMissions: state.writingMissions.filter(m => m.id !== mission.id) }))
+        })
+
         get().triggerSaveIndicator()
         return mission
       },
       addWritingMessage: (missionId, role, content, classification) => {
         const message: WritingMessage = { id: generateId(), missionId, role, content, classification, createdAt: new Date().toISOString() }
         set((state) => ({ writingMessages: [...state.writingMessages, message] }))
+        
+        // Optimistic sync
+        const state = get()
+        const mission = state.writingMissions.find(m => m.id === missionId)
+        if (mission) {
+          localProvider.addMessage({
+            studioId: (get().projects.find(p => p.id === mission.projectId) as any)?.studioId || '',
+            conversationId: missionId,
+            projectId: mission.projectId,
+            role: role === 'assistant' ? 'assistant' : 'user',
+            content,
+            provenance: { type: role === 'assistant' ? 'ai' : 'human' }
+          }).catch(console.error)
+        }
+
         get().triggerSaveIndicator()
         return message
       },
@@ -1285,6 +1366,26 @@ export const useMuseionStore = create<MuseionState>()(
         const now = new Date().toISOString()
         const newJob: ProductionJob = { ...job, id: generateId(), createdAt: now, updatedAt: now }
         set((state) => ({ productionJobs: [...state.productionJobs, newJob] }))
+        
+        // Optimistic sync
+        localProvider.createJob({
+          studioId: (get().projects.find(p => p.id === job.projectId) as any)?.studioId || '',
+          projectId: job.projectId,
+          label: job.label,
+          kind: job.kind,
+          status: job.status,
+          prompt: job.prompt,
+          parameters: { ratio: job.ratio, resolution: job.resolution, seed: job.seed, quality: job.quality },
+          provider: job.provider,
+          sceneId: job.sceneId,
+          shotId: job.shotId,
+          referenceAssetIds: job.referenceAssetIds || [],
+          provenance: { type: 'system' },
+        }).catch((err) => {
+          console.error("Rollback addProductionJob", err)
+          set((state) => ({ productionJobs: state.productionJobs.filter(j => j.id !== newJob.id) }))
+        })
+
         get().triggerSaveIndicator()
         return newJob
       },
@@ -1414,6 +1515,12 @@ export const useMuseionStore = create<MuseionState>()(
       name: 'museion-store-v1',
       storage: createJSONStorage(() => localStorage),
       version: SCHEMA_VERSION,
+      partialize: (state) => ({
+        schemaVersion: state.schemaVersion,
+        tour: state.tour,
+        demoIntroDismissed: state.demoIntroDismissed,
+        canvasViewport: state.canvasViewport,
+      }),
       // localStorage n'existe pas au rendu serveur : réhydrater pendant la
       // création du store ferait diverger le premier rendu client du HTML
       // envoyé par le serveur. La réhydratation est déclenchée après montage

@@ -164,14 +164,16 @@ function buildInitialTraces(data: NewProjectData, now: string): TraceItem[] {
   const decisions: Decision[] = [
     {
       id: generateId(),
-      status: 'decision',
+      projectId: 'gilgamesh',
+    status: 'decision',
       content: `Format retenu : ${FORMAT_LABELS[data.format]}.`,
       context: 'Choisi à la création du projet.',
       date: now,
     },
     {
       id: generateId(),
-      status: 'decision',
+      projectId: 'gilgamesh',
+    status: 'decision',
       content: `Genre retenu : ${GENRE_LABELS[data.genre]}.`,
       context: 'Choisi à la création du projet.',
       date: now,
@@ -181,14 +183,16 @@ function buildInitialTraces(data: NewProjectData, now: string): TraceItem[] {
   const hypotheses: Hypothesis[] = [
     {
       id: generateId(),
-      status: 'hypothesis',
+      projectId: 'gilgamesh',
+    status: 'hypothesis',
       content: 'La logline initiale tiendra jusqu’au traitement.',
       toValidate: 'À confirmer une fois le traitement en trois actes écrit.',
       date: now,
     },
     {
       id: generateId(),
-      status: 'hypothesis',
+      projectId: 'gilgamesh',
+    status: 'hypothesis',
       content: 'La structure suivra le découpage séquence → scène → plan.',
       toValidate: 'À confirmer à la première séquence de storyboard.',
       date: now,
@@ -198,7 +202,8 @@ function buildInitialTraces(data: NewProjectData, now: string): TraceItem[] {
   if (data.duration) {
     hypotheses.push({
       id: generateId(),
-      status: 'hypothesis',
+      projectId: 'gilgamesh',
+    status: 'hypothesis',
       content: `Durée cible : ${data.duration}.`,
       toValidate: 'À confirmer après le traitement.',
       date: now,
@@ -208,14 +213,16 @@ function buildInitialTraces(data: NewProjectData, now: string): TraceItem[] {
   const questions: OpenQuestion[] = [
     {
       id: generateId(),
-      status: 'open-question',
+      projectId: 'gilgamesh',
+    status: 'open-question',
       content: 'Quelle est l’intention de mise en scène en une phrase ?',
       priority: 'high',
       date: now,
     },
     {
       id: generateId(),
-      status: 'open-question',
+      projectId: 'gilgamesh',
+    status: 'open-question',
       content: 'Quel est le thème, distinct du sujet ?',
       priority: 'medium',
       date: now,
@@ -225,7 +232,8 @@ function buildInitialTraces(data: NewProjectData, now: string): TraceItem[] {
   if (!data.audience) {
     questions.push({
       id: generateId(),
-      status: 'open-question',
+      projectId: 'gilgamesh',
+    status: 'open-question',
       content: 'À quel public ce projet s’adresse-t-il ?',
       priority: 'medium',
       date: now,
@@ -235,7 +243,8 @@ function buildInitialTraces(data: NewProjectData, now: string): TraceItem[] {
   if (!data.universe) {
     questions.push({
       id: generateId(),
-      status: 'open-question',
+      projectId: 'gilgamesh',
+    status: 'open-question',
       content: 'Dans quel monde et à quelle époque le récit se déroule-t-il ?',
       priority: 'medium',
       date: now,

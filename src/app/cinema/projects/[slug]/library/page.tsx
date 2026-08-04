@@ -21,7 +21,7 @@ export default function LibraryPage() {
   const [filterSceneId, setFilterSceneId] = useState("all");
   const [filterDate, setFilterDate] = useState("");
 
-  if (!project) return <ProjectNotFound slug={slug} />;
+  if (!project) return <AppShell projectSlug={slug}><ProjectNotFound slug={slug} /></AppShell>;
 
   const collections = store.assetCollections?.filter(c => c.projectId === projectId) || [];
   

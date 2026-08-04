@@ -52,6 +52,7 @@ export type TraceStatus = 'decision' | 'hypothesis' | 'open-question'
 
 export interface Decision {
   id: string
+  projectId: string;
   status: 'decision'
   content: string
   context?: string
@@ -60,6 +61,7 @@ export interface Decision {
 
 export interface Hypothesis {
   id: string
+  projectId: string;
   status: 'hypothesis'
   content: string
   toValidate?: string
@@ -68,6 +70,7 @@ export interface Hypothesis {
 
 export interface OpenQuestion {
   id: string
+  projectId: string;
   status: 'open-question'
   content: string
   priority: 'low' | 'medium' | 'high'

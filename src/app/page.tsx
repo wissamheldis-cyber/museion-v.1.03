@@ -40,7 +40,7 @@ export default function HomePage() {
   if (!isMounted) return null
 
   return (
-    <div className="museion-global-wrapper relative flex h-screen w-screen items-center justify-center overflow-hidden bg-[#050608] p-2.5 sm:p-3 md:p-4">
+    <div className="museion-global-wrapper relative flex h-screen w-screen items-center justify-center overflow-hidden bg-transparent p-2.5 sm:p-3 md:p-4">
       {/* Fond global séparé — personnalisable */}
       <div className="museion-global-bg pointer-events-none absolute inset-0 z-0" />
 
@@ -48,17 +48,14 @@ export default function HomePage() {
       <div className="museion-cockpit-shell relative z-10 flex h-full w-full max-w-[1760px] flex-col overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--bg-base)] shadow-[0_32px_80px_-16px_rgba(0,0,0,0.92)] ring-1 ring-white/[0.04]">
         {/* Header */}
         <header className="flex items-center justify-between px-8 py-5 border-b border-[var(--border-subtle)]">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center">
             <Image
-              src="/brand/museion-logo.png"
+              src="/brand/logo museion.png"
               alt="Museion"
-              width={32}
-              height={32}
+              width={160}
+              height={160}
               className="object-contain opacity-90"
             />
-            <span className="text-sm font-semibold tracking-[0.15em] text-[var(--text-primary)] uppercase">
-              Museion
-            </span>
           </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">

@@ -48,9 +48,7 @@ export default function ProjectsListPage() {
 
   const favorites = projects.filter((p) => p.isFavorite && !p.isArchived)
   const archived = projects.filter((p) => p.isArchived)
-  const session = localAuthAdapter.getSession()
 
-  if (!session) return null
 
   return (
     <AppShell>

@@ -15,8 +15,7 @@ export default function CinemaDashboardPage() {
   const router = useRouter()
   const { projects} = useMuseionStore()
 
-  const session = localAuthAdapter.getSession()
-  if (!session) return null
+
 
   const activeProjects = projects.filter((p) => !p.isArchived && p.status !== 'draft').slice(0, 3)
   const pendingValidations = [
@@ -80,9 +79,9 @@ export default function CinemaDashboardPage() {
                   className="group block rounded-[var(--radius-lg)] bg-[var(--bg-card)] border border-[var(--border-subtle)] overflow-hidden hover:border-[var(--border-default)] transition-all duration-[var(--transition-base)] hover:bg-[var(--bg-card-hover)]"
                 >
                   {/* Image placeholder */}
-                  <div className="h-32 bg-[var(--bg-elevated)] flex items-center justify-center relative overflow-hidden">
+                  <div className="aspect-video w-full bg-[var(--bg-elevated)] flex items-center justify-center relative overflow-hidden">
                     <div
-                      className="absolute inset-0 opacity-20"
+                      className="absolute inset-0 opacity-40"
                       style={{
                         background: project.slug === 'gilgamesh'
                           ? 'linear-gradient(135deg, #2a2b2f 0%, #0d0e11 100%)'
@@ -91,8 +90,13 @@ export default function CinemaDashboardPage() {
                           : 'linear-gradient(135deg, #202126 0%, #0d0e11 100%)',
                       }}
                     />
-                    <Film size={28} className="text-[var(--text-muted)] relative z-10 group-hover:text-[var(--text-secondary)] transition-colors" />
-                    <div className="absolute bottom-2 left-2">
+                    {project.coverImageUrl && (
+                      <img src={project.coverImageUrl} alt={project.title} className="absolute inset-0 w-full h-full object-cover opacity-80 mix-blend-overlay group-hover:opacity-100 group-hover:mix-blend-normal transition-all duration-500" />
+                    )}
+                    {!project.coverImageUrl && (
+                      <Film size={28} className="text-[var(--text-muted)] relative z-10 group-hover:text-[var(--text-secondary)] transition-colors" />
+                    )}
+                    <div className="absolute bottom-2 left-2 z-20">
                       <StatusBadge status={project.status} />
                     </div>
                   </div>

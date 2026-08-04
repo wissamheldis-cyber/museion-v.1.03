@@ -43,7 +43,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-base)] flex flex-col items-center justify-center relative overflow-hidden">
+    <div className="min-h-screen bg-transparent flex flex-col items-center justify-center relative overflow-hidden">
       {/* Fond subtil */}
       <div
         className="absolute inset-0 pointer-events-none"
@@ -55,22 +55,16 @@ export default function LoginPage() {
       <div className="relative w-full max-w-sm mx-auto px-6">
         {/* Logo */}
         <div className="flex flex-col items-center mb-10">
-          <div className="w-20 h-20 mb-6 relative">
+          <div className="w-96 h-96 relative">
             <Image
-              src="/brand/museion-logo.png"
+              src="/brand/logo museion.png"
               alt="Museion"
               fill
-              sizes="80px"
+              sizes="384px"
               className="object-contain"
               priority
             />
           </div>
-          <h1 className="text-2xl font-semibold tracking-[0.18em] text-[var(--text-primary)] uppercase">
-            Museion
-          </h1>
-          <p className="mt-1.5 text-sm text-[var(--text-muted)] tracking-wide">
-            Studio créatif
-          </p>
         </div>
 
         {/* Formulaire */}

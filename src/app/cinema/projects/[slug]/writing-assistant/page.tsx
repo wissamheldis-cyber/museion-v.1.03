@@ -25,7 +25,7 @@ export default function WritingAssistantPage() {
   const [insertModalTarget, setInsertModalTarget] = useState<{ id: string; content: string; type: 'message' | 'variant' } | null>(null);
   const [insertSubField, setInsertSubField] = useState<string>("");
 
-  if (!project) return <ProjectNotFound slug={slug} />;
+  if (!project) return <AppShell projectSlug={slug}><ProjectNotFound slug={slug} /></AppShell>;
 
   const missions = store.writingMissions?.filter(m => m.projectId === projectId) || [];
   const activeMission = missions.find(m => m.id === activeMissionId);
