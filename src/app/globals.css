@@ -1,26 +1,177 @@
 @import "tailwindcss";
 
+/* ============================================================
+   MUSEION — Design System
+   ============================================================ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Fond principal */
+  --bg-base: #0a0c10;
+  --bg-surface: #0f1219;
+  --bg-card: #141720;
+  --bg-card-hover: #1a1f2e;
+  --bg-elevated: #1c2030;
+
+  /* Texte */
+  --text-primary: #e8e8e6;
+  --text-secondary: #8a8f9e;
+  --text-muted: #565b6e;
+  --text-accent: #c9a84c;
+
+  /* Accents */
+  --accent-blue: #3b8ef0;
+  --accent-blue-hover: #5aa3f8;
+  --accent-blue-dim: rgba(59, 142, 240, 0.15);
+  --accent-champagne: #c9a84c;
+  --accent-champagne-dim: rgba(201, 168, 76, 0.12);
+
+  /* Statuts */
+  --status-decision: #22c55e;
+  --status-hypothesis: #f59e0b;
+  --status-question: #60a5fa;
+
+  /* Bordures */
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.10);
+  --border-strong: rgba(255, 255, 255, 0.18);
+
+  /* Liquid Glass */
+  --glass-bg: rgba(15, 18, 25, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-blur: blur(20px);
+
+  /* Transitions */
+  --transition-fast: 120ms ease-in-out;
+  --transition-base: 180ms ease-in-out;
+  --transition-slow: 220ms ease-in-out;
+
+  /* Rayons */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--bg-base);
+  --color-foreground: var(--text-primary);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ============================================================
+   Base
+   ============================================================ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================================
+   Liquid Glass
+   ============================================================ */
+
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+}
+
+/* ============================================================
+   Scrollbar discrète
+   ============================================================ */
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ============================================================
+   Sélection
+   ============================================================ */
+
+::selection {
+  background: rgba(59, 142, 240, 0.3);
+  color: var(--text-primary);
+}
+
+/* ============================================================
+   Focus accessible
+   ============================================================ */
+
+:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ============================================================
+   Utilities Museion
+   ============================================================ */
+
+.text-museion-primary { color: var(--text-primary); }
+.text-museion-secondary { color: var(--text-secondary); }
+.text-museion-muted { color: var(--text-muted); }
+.text-museion-accent { color: var(--text-accent); }
+.text-museion-blue { color: var(--accent-blue); }
+
+.bg-museion-base { background-color: var(--bg-base); }
+.bg-museion-surface { background-color: var(--bg-surface); }
+.bg-museion-card { background-color: var(--bg-card); }
+.bg-museion-elevated { background-color: var(--bg-elevated); }
+
+.border-museion { border-color: var(--border-default); }
+.border-museion-subtle { border-color: var(--border-subtle); }
+
+/* Progress bar animation */
+@keyframes progress-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Save indicator fade */
+@keyframes fade-in-out {
+  0% { opacity: 0; transform: translateY(4px); }
+  20% { opacity: 1; transform: translateY(0); }
+  80% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-4px); }
+}
+
+.save-indicator {
+  animation: fade-in-out 2s ease-in-out forwards;
 }
