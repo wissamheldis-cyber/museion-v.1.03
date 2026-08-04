@@ -97,7 +97,9 @@ interface MuseionState {
   addProject: (project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => Project
   createProject: (
     input: NewProjectInput
-  ) => { ok: true; project: Project } | { ok: false; errors: FieldErrors }
+  ) => Promise<
+    { ok: true; project: Project } | { ok: false; errors: FieldErrors; message?: string }
+  >
   duplicateProject: (projectId: string, title?: string) => Project | undefined
   resetDemoProject: () => void
   updateProject: (id: string, patch: Partial<Project>) => void
@@ -357,7 +359,7 @@ export const useMuseionStore = create<MuseionState>()(
         return project
       },
 
-      createProject: (input) => {
+      createProject: async (input) => {
         const result = validateNewProject(input)
         if (!result.ok) return result
 
@@ -365,17 +367,48 @@ export const useMuseionStore = create<MuseionState>()(
           existingSlugs: get().projects.map((p) => p.slug),
         })
 
+        const studioId = get().currentStudioId
+
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[createProject] tentative', {
+            authProfileId: get().auth?.profileId ?? null,
+            currentStudioId: studioId,
+            currentStudioRole: get().currentStudioRole,
+            projectId: project.id,
+            slug: project.slug,
+          })
+        }
+
+        if (!studioId) {
+          console.error(
+            '[createProject] Aucun studio actif (currentStudioId est null) — le projet ne peut pas être créé.'
+          )
+          return {
+            ok: false,
+            errors: {},
+            message:
+              "Aucun studio actif pour ce compte. Le projet n'a pas été créé — vérifiez que ce compte appartient bien à un studio.",
+          }
+        }
+
+        // Mise à jour optimiste locale, annulée si Supabase refuse l'insertion.
         set((state) => ({
           projects: [project, ...state.projects],
           lastSavedAt: project.createdAt,
         }))
-        const studioId = get().currentStudioId
-        if (studioId) {
-          projectsRemote.createProjectRemote(studioId, project).catch((err) => {
-            console.error('Rollback createProject', err)
-            set((state) => ({ projects: state.projects.filter((p) => p.id !== project.id) }))
-          })
+
+        try {
+          await projectsRemote.createProjectRemote(studioId, project)
+        } catch (err) {
+          console.error('[createProject] Échec de la création côté Supabase, annulation locale :', err)
+          set((state) => ({ projects: state.projects.filter((p) => p.id !== project.id) }))
+          return {
+            ok: false,
+            errors: {},
+            message: 'La création du projet a échoué côté serveur. Rien n’a été enregistré — réessayez.',
+          }
         }
+
         get().triggerSaveIndicator()
         return { ok: true, project }
       },
@@ -386,7 +419,7 @@ export const useMuseionStore = create<MuseionState>()(
         if (!source) return undefined
 
         const now = new Date().toISOString()
-        const newId = `proj-${generateId()}`
+        const newId = generateId()
         const nextTitle = title?.trim() || `${source.title} (copie)`
         const copy: Project = {
           ...source,
@@ -515,18 +548,21 @@ export const useMuseionStore = create<MuseionState>()(
           ),
           sequences: [
             ...state.sequences.filter((q) => q.projectId !== DEMO_PROJECT_ID),
-            ...DEMO_SEQUENCES,
+            ...DEMO_SEQUENCES.filter((q) => q.projectId === DEMO_PROJECT_ID),
           ],
           scenes: [
             ...state.scenes.filter((sc) => sc.projectId !== DEMO_PROJECT_ID),
-            ...DEMO_SCENES_WITH_ASSETS,
+            ...DEMO_SCENES_WITH_ASSETS.filter((sc) => sc.projectId === DEMO_PROJECT_ID),
           ],
           shots: [...state.shots.filter((sh) => sh.projectId !== DEMO_PROJECT_ID), ...DEMO_SHOTS],
           edges: [...state.edges.filter((e) => !isDemoEdge(e)), ...DEMO_STORYBOARD_EDGES],
-          assets: [...state.assets.filter((a) => a.projectId !== DEMO_PROJECT_ID), ...DEMO_ASSETS],
+          assets: [
+            ...state.assets.filter((a) => a.projectId !== DEMO_PROJECT_ID),
+            ...DEMO_ASSETS.filter((a) => a.projectId === DEMO_PROJECT_ID),
+          ],
           jobs: state.jobs.filter((j) => j.projectId !== DEMO_PROJECT_ID),
           assetJournal: [],
-          selectedSceneId: DEMO_SCENES_WITH_ASSETS[0]?.id ?? null,
+          selectedSceneId: DEMO_SCENES_WITH_ASSETS.find((sc) => sc.projectId === DEMO_PROJECT_ID)?.id ?? null,
           selectedShotId: DEMO_SHOTS[0]?.id ?? null,
           canvasViewport: { x: 0, y: 0, zoom: 0.75 },
           lastSavedAt: new Date().toISOString(),

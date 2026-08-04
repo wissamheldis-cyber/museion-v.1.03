@@ -65,6 +65,8 @@ export default function NewProjectPage() {
     genre: 'drama',
   })
   const [errors, setErrors] = useState<FieldErrors>({})
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
 
 
 
@@ -103,15 +105,28 @@ export default function NewProjectPage() {
     if (step < 4) setStep((s) => (s + 1) as Step)
   }
 
-  const handleCreate = () => {
-    const result = createProject(toInput())
-    if (!result.ok) {
-      setErrors(result.errors)
-      setStep(1)
-      return
+  const handleCreate = async () => {
+    setSubmitError(null)
+    setCreating(true)
+    try {
+      const result = await createProject(toInput())
+      if (!result.ok) {
+        // Échec (validation tardive ou Supabase) : on reste sur cette étape,
+        // toutes les données saisies restent intactes, l'erreur est visible.
+        setErrors(result.errors)
+        setSubmitError(result.message ?? 'La création du projet a échoué. Vérifiez les informations et réessayez.')
+        return
+      }
+      if (!result.project.id || !result.project.slug) {
+        setSubmitError('Le projet a été créé mais la réponse est incomplète (id/slug manquant). Contactez le support.')
+        return
+      }
+      // Le slug est unique : il est calculé par le bootstrapper. On ne
+      // navigue qu'une fois la création confirmée par Supabase.
+      router.push(`/cinema/projects/${result.project.slug}`)
+    } finally {
+      setCreating(false)
     }
-    // Le slug est unique : il est calculé par le bootstrapper.
-    router.push(`/cinema/projects/${result.project.slug}`)
   }
 
   // Blueprint dynamique
@@ -310,6 +325,11 @@ export default function NewProjectPage() {
                     </div>
                   ))}
                 </div>
+                {submitError && (
+                  <p className="text-xs text-[var(--state-danger)] bg-[var(--state-danger-dim)] border border-[var(--state-danger)]/25 rounded-[var(--radius-sm)] px-3 py-2">
+                    {submitError}
+                  </p>
+                )}
               </div>
             )}
 
@@ -331,8 +351,8 @@ export default function NewProjectPage() {
                     Suivant
                   </Button>
                 ) : (
-                  <Button variant="primary" onClick={handleCreate} disabled={!form.title.trim()}>
-                    Créer le projet
+                  <Button variant="primary" onClick={handleCreate} disabled={!form.title.trim() || creating}>
+                    {creating ? 'Création…' : 'Créer le projet'}
                   </Button>
                 )}
               </div>

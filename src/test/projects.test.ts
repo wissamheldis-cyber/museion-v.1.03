@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { act } from '@testing-library/react'
 import { useMuseionStore, DEMO_PROJECT_ID, DEMO_TOUR_ID } from '@/store/museionStore'
 import {
@@ -10,15 +10,81 @@ import { workflowProgress, WORKFLOW_DEFINITION } from '@/lib/workflow'
 import { GILGAMESH_TOUR } from '@/lib/tour/gilgameshTour'
 import type { Project } from '@/lib/types'
 
+// Ces tests portent sur la logique locale du store (slugs, structure des
+// projets, isolation, visite guidée) — pas sur Supabase. On neutralise tout
+// l'adaptateur distant en no-ops résolus, pour qu'aucun appel réseau réel
+// ne parte pendant ces tests, quelle que soit l'action du store déclenchée.
+vi.mock('@/adapters/supabase/studios', () => ({
+  resolveCurrentStudio: vi.fn().mockResolvedValue(null),
+  createStudioForCurrentUser: vi.fn().mockResolvedValue(undefined),
+}))
+vi.mock('@/adapters/supabase/projects', () => ({
+  fetchProjects: vi.fn().mockResolvedValue([]),
+  createProjectRemote: vi.fn().mockResolvedValue(undefined),
+  deleteProjectRemote: vi.fn().mockResolvedValue(undefined),
+  updateProjectCoreRemote: vi.fn().mockResolvedValue(undefined),
+  upsertProjectCanonRemote: vi.fn().mockResolvedValue(undefined),
+  addLoglineVersionRemote: vi.fn().mockResolvedValue(undefined),
+  upsertCharacterRemote: vi.fn().mockResolvedValue(undefined),
+  deleteCharacterRemote: vi.fn().mockResolvedValue(undefined),
+  replaceScriptScenesRemote: vi.fn().mockResolvedValue(undefined),
+  addTraceRemote: vi.fn().mockResolvedValue(undefined),
+}))
+vi.mock('@/adapters/supabase/storyboard', () => ({
+  fetchStoryboard: vi.fn().mockResolvedValue({ sequences: [], scenes: [], shots: [], edges: [] }),
+  createSequenceRemote: vi.fn().mockResolvedValue(undefined),
+  updateSequenceRemote: vi.fn().mockResolvedValue(undefined),
+  deleteSequenceRemote: vi.fn().mockResolvedValue(undefined),
+  createSceneRemote: vi.fn().mockResolvedValue(undefined),
+  updateSceneRemote: vi.fn().mockResolvedValue(undefined),
+  deleteSceneRemote: vi.fn().mockResolvedValue(undefined),
+  createShotRemote: vi.fn().mockResolvedValue(undefined),
+  updateShotRemote: vi.fn().mockResolvedValue(undefined),
+  deleteShotRemote: vi.fn().mockResolvedValue(undefined),
+  createEdgeRemote: vi.fn().mockResolvedValue(undefined),
+  deleteEdgeRemote: vi.fn().mockResolvedValue(undefined),
+}))
+vi.mock('@/adapters/supabase/assets', () => ({
+  fetchAssets: vi.fn().mockResolvedValue({ assets: [], journal: [] }),
+  createAssetRemote: vi.fn().mockResolvedValue(undefined),
+  updateAssetRemote: vi.fn().mockResolvedValue(undefined),
+  addAssetVersionRemote: vi.fn().mockResolvedValue(undefined),
+  addJournalEntryRemote: vi.fn().mockResolvedValue(undefined),
+}))
+vi.mock('@/adapters/supabase/sprint4', () => ({
+  fetchSprint4: vi.fn().mockResolvedValue({
+    writingMissions: [], writingMessages: [], writingVariants: [], productionJobs: [],
+    reviewComments: [], reviewChecklists: [], deliverablePackages: [], assetCollections: [],
+  }),
+  createMissionRemote: vi.fn().mockResolvedValue(undefined),
+  deleteMissionRemote: vi.fn().mockResolvedValue(undefined),
+  createMessageRemote: vi.fn().mockResolvedValue(undefined),
+  createVariantRemote: vi.fn().mockResolvedValue(undefined),
+  selectVariantRemote: vi.fn().mockResolvedValue(undefined),
+  createJobRemote: vi.fn().mockResolvedValue(undefined),
+  updateJobRemote: vi.fn().mockResolvedValue(undefined),
+  createReviewCommentRemote: vi.fn().mockResolvedValue(undefined),
+  deleteReviewCommentRemote: vi.fn().mockResolvedValue(undefined),
+  createChecklistItemRemote: vi.fn().mockResolvedValue(undefined),
+  toggleChecklistItemRemote: vi.fn().mockResolvedValue(undefined),
+  createDeliverableRemote: vi.fn().mockResolvedValue(undefined),
+  updateDeliverableRemote: vi.fn().mockResolvedValue(undefined),
+  createAssetCollectionRemote: vi.fn().mockResolvedValue(undefined),
+  updateAssetCollectionRemote: vi.fn().mockResolvedValue(undefined),
+  deleteAssetCollectionRemote: vi.fn().mockResolvedValue(undefined),
+}))
+
+const TEST_STUDIO_ID = 'studio-test-0000-0000-000000000000'
+
 function store() {
   return useMuseionStore.getState()
 }
 
 /** Crée un projet et renvoie l'objet créé, ou échoue le test. */
-function create(input: Parameters<ReturnType<typeof store>['createProject']>[0]): Project {
+async function create(input: Parameters<ReturnType<typeof store>['createProject']>[0]): Promise<Project> {
   let created: Project | undefined
-  act(() => {
-    const result = store().createProject(input)
+  await act(async () => {
+    const result = await store().createProject(input)
     if (result.ok) created = result.project
   })
   if (!created) throw new Error('Le projet n’a pas pu être créé')
@@ -40,8 +106,13 @@ const PROJECT_B = {
 }
 
 beforeEach(() => {
+  vi.clearAllMocks()
   act(() => {
     store().resetToDemo()
+    // La plupart de ces tests portent sur la logique locale, pas sur la
+    // présence d'un studio Supabase réel : on en simule un pour que
+    // createProject() n'échoue pas sur le nouveau garde-fou studioId.
+    useMuseionStore.setState({ currentStudioId: TEST_STUDIO_ID, currentStudioRole: 'owner' })
   })
 })
 
@@ -123,9 +194,9 @@ describe('ProjectBootstrapper', () => {
 // ------------------------------------------------------------
 
 describe('Création réelle et isolation stricte', () => {
-  it('crée deux projets avec des slugs distincts', () => {
-    const a = create(PROJECT_A)
-    const b = create(PROJECT_B)
+  it('crée deux projets avec des slugs distincts', async () => {
+    const a = await create(PROJECT_A)
+    const b = await create(PROJECT_B)
 
     expect(a.slug).toBe('projet-a')
     expect(b.slug).toBe('projet-b')
@@ -134,10 +205,10 @@ describe('Création réelle et isolation stricte', () => {
     expect(store().projects.find((p) => p.slug === 'projet-b')).toBeDefined()
   })
 
-  it('donne des slugs uniques à deux projets de même titre', () => {
-    act(() => {
-      store().createProject(PROJECT_A)
-      store().createProject(PROJECT_A)
+  it('donne des slugs uniques à deux projets de même titre', async () => {
+    await act(async () => {
+      await store().createProject(PROJECT_A)
+      await store().createProject(PROJECT_A)
     })
     const slugs = store()
       .projects.filter((p) => p.title === 'Projet A')
@@ -147,9 +218,9 @@ describe('Création réelle et isolation stricte', () => {
     expect(slugs).toContain('projet-a-2')
   })
 
-  it('ne mélange jamais scènes et plans entre deux projets', () => {
-    const idA = create(PROJECT_A).id
-    const idB = create(PROJECT_B).id
+  it('ne mélange jamais scènes et plans entre deux projets', async () => {
+    const idA = (await create(PROJECT_A)).id
+    const idB = (await create(PROJECT_B)).id
 
     act(() => {
       const seqA = store().addSequence(idA, { title: 'Ouverture A' })
@@ -180,9 +251,9 @@ describe('Création réelle et isolation stricte', () => {
     expect(scenesB.every((s) => !seqIdsA.has(s.sequenceId))).toBe(true)
   })
 
-  it('laisse la démonstration Gilgamesh intacte après la création de projets', () => {
+  it('laisse la démonstration Gilgamesh intacte après la création de projets', async () => {
     const before = store().scenes.filter((s) => s.projectId === DEMO_PROJECT_ID).length
-    const a = create(PROJECT_A)
+    const a = await create(PROJECT_A)
     act(() => {
       const seq = store().addSequence(a.id)
       store().addScene(seq.id)
@@ -190,8 +261,8 @@ describe('Création réelle et isolation stricte', () => {
     expect(store().scenes.filter((s) => s.projectId === DEMO_PROJECT_ID)).toHaveLength(before)
   })
 
-  it('numérote les scènes et les plans par projet', () => {
-    const a = create(PROJECT_A)
+  it('numérote les scènes et les plans par projet', async () => {
+    const a = await create(PROJECT_A)
 
     act(() => {
       const seq = store().addSequence(a.id)
@@ -221,8 +292,8 @@ describe('Démonstration Gilgamesh', () => {
     expect(demo.slug).toBe('gilgamesh')
   })
 
-  it('se réinitialise de façon déterministe sans toucher aux autres projets', () => {
-    const a = create(PROJECT_A)
+  it('se réinitialise de façon déterministe sans toucher aux autres projets', async () => {
+    const a = await create(PROJECT_A)
 
     act(() => {
       const seq = store().addSequence(a.id, { title: 'Séquence utilisateur' })
@@ -362,8 +433,8 @@ describe('Moteur de visite guidée', () => {
     expect(store().demoIntroDismissed).toBe(true)
   })
 
-  it('ne s’exécute que sur le projet visité', () => {
-    const a = create(PROJECT_A)
+  it('ne s’exécute que sur le projet visité', async () => {
+    const a = await create(PROJECT_A)
     act(() => {
       store().startTour(DEMO_TOUR_ID, DEMO_PROJECT_ID)
     })

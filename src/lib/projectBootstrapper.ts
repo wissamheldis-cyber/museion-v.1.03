@@ -108,7 +108,7 @@ export interface BootstrapOptions {
  */
 export function bootstrapProject(data: NewProjectData, options: BootstrapOptions): Project {
   const now = options.now ?? new Date().toISOString()
-  const id = options.id ?? `proj-${generateId()}`
+  const id = options.id ?? generateId()
   const slug = uniqueSlug(data.title, options.existingSlugs)
   const workflow = createWorkflow({ idea: 'done', script: 'in-progress' })
 
