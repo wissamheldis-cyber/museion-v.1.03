@@ -87,7 +87,7 @@ export default function PrevisPage() {
   };
 
   return (
-    <AppShell>
+    <AppShell projectSlug={slug}>
       <div className="flex h-full text-sm text-[var(--text-primary)]">
         <div className="w-80 border-r border-[var(--border-subtle)] p-4 bg-[var(--bg-surface)] flex flex-col gap-6 overflow-auto">
           <div>

@@ -35,7 +35,7 @@ export default function LibraryPage() {
   });
 
   return (
-    <AppShell>
+    <AppShell projectSlug={slug}>
       <div className="flex h-full text-sm text-[var(--text-primary)]">
         <div className="w-64 border-r border-[var(--border-subtle)] p-4 bg-[var(--bg-surface)] flex flex-col gap-4 overflow-auto">
           <h2 className="label-caps text-[var(--text-secondary)]">Collections</h2>

@@ -49,7 +49,7 @@ export default function ReviewPage() {
   };
 
   return (
-    <AppShell>
+    <AppShell projectSlug={slug}>
       <div className="flex h-full text-sm text-[var(--text-primary)]">
         <div className="w-64 border-r border-[var(--border-subtle)] p-4 bg-[var(--bg-surface)] overflow-auto">
           <h2 className="label-caps text-[var(--text-secondary)] mb-4">À revoir</h2>

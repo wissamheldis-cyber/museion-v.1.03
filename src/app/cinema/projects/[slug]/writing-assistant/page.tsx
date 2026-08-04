@@ -70,7 +70,7 @@ export default function WritingAssistantPage() {
   };
 
   return (
-    <AppShell>
+    <AppShell projectSlug={slug}>
       <div className="flex h-full text-sm text-[var(--text-primary)]">
         <div className="w-64 border-r border-[var(--border-subtle)] p-4 flex flex-col gap-4 bg-[var(--bg-surface)]">
           <h2 className="label-caps text-[var(--text-secondary)]">Missions</h2>

@@ -65,7 +65,7 @@ export default function ProductionPage() {
   };
 
   return (
-    <AppShell>
+    <AppShell projectSlug={slug}>
       <div className="flex h-full text-sm text-[var(--text-primary)]">
         <div className="flex-1 flex flex-col p-6 overflow-auto">
           <div className="flex justify-between items-center mb-6">
