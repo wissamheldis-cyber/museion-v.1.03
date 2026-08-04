@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState, useEffect } from 'react'
+import { Fragment, Suspense, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -8,6 +8,7 @@ import { supabaseAuthAdapter } from '@/adapters/auth/SupabaseAuthAdapter'
 import { useMuseionStore } from '@/store/museionStore'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { IntroSequence } from '@/components/intro/IntroSequence'
 
 export default function LoginPage() {
   return (
@@ -25,6 +26,8 @@ function LoginForm() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [introActive, setIntroActive] = useState(true)
+  const [revealed, setRevealed] = useState(false)
 
   useEffect(() => {
     const session = supabaseAuthAdapter.getSession()
@@ -54,7 +57,14 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen bg-transparent flex flex-col items-center justify-center relative overflow-hidden">
+    <Fragment>
+    <div
+      className="min-h-screen bg-transparent flex flex-col items-center justify-center relative overflow-hidden"
+      style={{
+        filter: revealed ? 'blur(0px)' : 'blur(40px)',
+        transition: 'filter 3000ms ease-out',
+      }}
+    >
       {/* Fond subtil */}
       <div
         className="absolute inset-0 pointer-events-none"
@@ -136,5 +146,12 @@ function LoginForm() {
         </form>
       </div>
     </div>
+    {introActive && (
+      <IntroSequence
+        onRevealStart={() => setRevealed(true)}
+        onComplete={() => setIntroActive(false)}
+      />
+    )}
+    </Fragment>
   )
 }
