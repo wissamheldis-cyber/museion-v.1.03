@@ -14,22 +14,34 @@ function framePath(n: number): string {
 }
 
 interface IntroSequenceProps {
+  /** Appelé une seule fois, 1s avant onRevealStart : point de départ de l'apparition du logo. */
+  onLogoRevealStart?: () => void
   /** Appelé une seule fois, à 13,5s : le point de départ du dévoilement de l'écran de connexion. */
   onRevealStart?: () => void
   /** Appelé une fois l'intro entièrement effacée de l'écran. */
   onComplete?: () => void
 }
 
+const LOGO_REVEAL_LEAD_MS = 1000
+
+// Filet de sécurité si la musique ne se termine jamais (erreur de lecture,
+// métadonnées indisponibles) : on ne laisse pas l'overlay invisible vivre
+// indéfiniment dans le DOM.
+const AUDIO_FAILSAFE_MS = 30000
+
 /**
  * Séquence d'ouverture : 288 images défilées à la cadence de la vidéo
  * source (~16 s), musique en fond. À 13,5 s, l'intro commence à s'effacer en
  * fondu pour révéler l'écran de connexion, qui se déflout en même temps
- * (piloté séparément par le parent via onRevealStart).
+ * (piloté séparément par le parent via onRevealStart) ; une fois le fondu
+ * terminé l'overlay devient invisible et cliquable au travers (le formulaire
+ * de connexion redevient utilisable), mais reste monté — et la musique
+ * continue de jouer — jusqu'à la fin réelle du morceau.
  *
  * Pas de bouton : la musique démarre seule au montage, et cliquer n'importe
  * où sur l'écran pendant l'intro coupe le son (un second clic le rétablit).
  */
-export function IntroSequence({ onRevealStart, onComplete }: IntroSequenceProps) {
+export function IntroSequence({ onLogoRevealStart, onRevealStart, onComplete }: IntroSequenceProps) {
   const [frame, setFrame] = useState(1)
   const [fadingOut, setFadingOut] = useState(false)
   const [mounted, setMounted] = useState(true)
@@ -37,7 +49,9 @@ export function IntroSequence({ onRevealStart, onComplete }: IntroSequenceProps)
   const loadedRef = useRef<Set<number>>(new Set())
   const startRef = useRef<number | null>(null)
   const rafRef = useRef<number | null>(null)
+  const logoRevealFiredRef = useRef(false)
   const revealFiredRef = useRef(false)
+  const finishedRef = useRef(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
@@ -50,9 +64,19 @@ export function IntroSequence({ onRevealStart, onComplete }: IntroSequenceProps)
       img.src = framePath(i)
     }
 
-    audioRef.current?.play().catch((err) => {
+    const finishIntro = () => {
+      if (finishedRef.current) return
+      finishedRef.current = true
+      setMounted(false)
+      onComplete?.()
+    }
+
+    const audio = audioRef.current
+    audio?.play().catch((err) => {
       console.error('Intro: lecture audio impossible', err)
     })
+    audio?.addEventListener('ended', finishIntro)
+    const failsafeTimer = window.setTimeout(finishIntro, AUDIO_FAILSAFE_MS)
 
     const tick = (now: number) => {
       if (startRef.current === null) startRef.current = now
@@ -63,19 +87,18 @@ export function IntroSequence({ onRevealStart, onComplete }: IntroSequenceProps)
       while (toShow > 1 && !loadedRef.current.has(toShow)) toShow--
       setFrame(toShow)
 
+      if (!logoRevealFiredRef.current && elapsed >= REVEAL_START_MS - LOGO_REVEAL_LEAD_MS) {
+        logoRevealFiredRef.current = true
+        onLogoRevealStart?.()
+      }
+
       if (!revealFiredRef.current && elapsed >= REVEAL_START_MS) {
         revealFiredRef.current = true
         setFadingOut(true)
         onRevealStart?.()
-        window.setTimeout(() => {
-          setMounted(false)
-          onComplete?.()
-        }, REVEAL_DURATION_MS)
       }
 
-      if (elapsed < DURATION_MS && !revealFiredRef.current) {
-        rafRef.current = requestAnimationFrame(tick)
-      } else if (elapsed < REVEAL_START_MS + REVEAL_DURATION_MS) {
+      if (elapsed < REVEAL_START_MS + REVEAL_DURATION_MS) {
         rafRef.current = requestAnimationFrame(tick)
       }
     }
@@ -83,6 +106,8 @@ export function IntroSequence({ onRevealStart, onComplete }: IntroSequenceProps)
 
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      window.clearTimeout(failsafeTimer)
+      audio?.removeEventListener('ended', finishIntro)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -101,10 +126,11 @@ export function IntroSequence({ onRevealStart, onComplete }: IntroSequenceProps)
 
   return (
     <div
-      onClick={toggleSound}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black cursor-pointer"
+      onClick={fadingOut ? undefined : toggleSound}
+      className={`fixed inset-0 z-[100] flex items-center justify-center bg-black ${fadingOut ? '' : 'cursor-pointer'}`}
       style={{
         opacity: fadingOut ? 0 : 1,
+        pointerEvents: fadingOut ? 'none' : 'auto',
         transition: `opacity ${REVEAL_DURATION_MS}ms ease-out`,
       }}
     >
