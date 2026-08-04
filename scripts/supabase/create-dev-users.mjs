@@ -19,11 +19,18 @@
 // Environment:
 //   $env:SUPABASE_URL = "https://qwqyrkifzcpbtzfdctsl.supabase.co"   (or local API_URL)
 //   $env:SUPABASE_SERVICE_ROLE_KEY = "<paste only in this shell, never in a file>"
+//   $env:NEXT_PUBLIC_SITE_URL = "http://localhost:3001"  (optional, same default as the app)
+//
+// The invite email's redirect target is built from NEXT_PUBLIC_SITE_URL, not
+// hardcoded, so it always points at wherever the app actually runs and stays
+// in Supabase's redirect allowlist (supabase/config.toml additional_redirect_urls).
 //
 // The service role key is read from the environment only. It is never
 // logged, written to a file, or echoed back. Unset the env var when done:
 //   Remove-Item Env:\SUPABASE_SERVICE_ROLE_KEY
 // ============================================================================
+
+export const DEFAULT_SITE_URL = 'http://localhost:3001'
 
 export const DEV_ACCOUNTS = [
   { email: 'shou.edition@gmail.com', displayName: 'Museion Studio — Admin' },
@@ -39,6 +46,9 @@ export const USAGE = `Usage: node scripts/supabase/create-dev-users.mjs [--help]
 Variables d'environnement requises (sauf avec --help) :
   SUPABASE_URL
   SUPABASE_SERVICE_ROLE_KEY
+
+Variable optionnelle :
+  NEXT_PUBLIC_SITE_URL (défaut : ${DEFAULT_SITE_URL})
 
 Comptes gérés :
 ${DEV_ACCOUNTS.map((a) => `  - ${a.email}`).join('\n')}
@@ -132,8 +142,13 @@ function buildUsersByEmail(users) {
  * inviteUserByEmail for an account that already exists in any state — that
  * is the whole point of idempotency here. Returns a status string for the
  * summary and exit-code logic.
+ *
+ * `siteUrl` (no trailing slash) must be one of Supabase's configured
+ * additional_redirect_urls — the invite link lands the user on
+ * `${siteUrl}/reset-password`, the only page that can consume the recovery
+ * token and isn't behind the auth middleware.
  */
-export async function processAccount(admin, account, usersByEmail) {
+export async function processAccount(admin, account, usersByEmail, siteUrl) {
   const existing = usersByEmail.get(account.email.toLowerCase())
   const status = classifyUser(existing)
 
@@ -148,6 +163,7 @@ export async function processAccount(admin, account, usersByEmail) {
 
   const { data, error } = await admin.auth.admin.inviteUserByEmail(account.email, {
     data: { display_name: account.displayName },
+    redirectTo: `${siteUrl}/reset-password`,
   })
 
   if (error) {
@@ -214,10 +230,11 @@ async function main() {
     process.exit(1)
   }
   const usersByEmail = buildUsersByEmail(userList.users)
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || DEFAULT_SITE_URL).replace(/\/$/, '')
 
   const results = []
   for (const account of accounts) {
-    results.push(await processAccount(admin, account, usersByEmail))
+    results.push(await processAccount(admin, account, usersByEmail, siteUrl))
   }
 
   const hadError = results.some((r) => r === 'error' || r === 'rate_limited')

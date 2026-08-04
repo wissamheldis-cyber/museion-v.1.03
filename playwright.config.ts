@@ -8,7 +8,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001',
     trace: 'on-first-retry',
   },
   projects: [
@@ -20,7 +20,7 @@ export default defineConfig({
   // E2E tests seront complétés au Sprint 3
   // webServer: {
   //   command: 'npm run dev',
-  //   url: 'http://localhost:3000',
+  //   url: 'http://localhost:3001',
   //   reuseExistingServer: !process.env.CI,
   // },
 })

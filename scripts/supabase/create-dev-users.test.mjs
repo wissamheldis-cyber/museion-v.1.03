@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
   DEV_ACCOUNTS,
+  DEFAULT_SITE_URL,
   parseArgs,
   pickAccounts,
   classifyUser,
@@ -8,6 +9,14 @@ import {
   isAlreadyRegisteredError,
   processAccount,
 } from './create-dev-users.mjs'
+
+const TEST_SITE_URL = 'http://localhost:3001'
+
+describe('DEFAULT_SITE_URL', () => {
+  it('matches the port Museion actually runs on locally', () => {
+    expect(DEFAULT_SITE_URL).toBe('http://localhost:3001')
+  })
+})
 
 describe('parseArgs', () => {
   it('returns no-op defaults with no arguments', () => {
@@ -149,21 +158,21 @@ describe('processAccount (idempotency — no network, mocked admin client)', () 
 
   it('never invites an already-confirmed user', async () => {
     const usersByEmail = new Map([[account.email, { email_confirmed_at: '2026-01-01T00:00:00Z' }]])
-    const result = await processAccount(admin, account, usersByEmail)
+    const result = await processAccount(admin, account, usersByEmail, TEST_SITE_URL)
     expect(result).toBe('confirmed')
     expect(admin.auth.admin.inviteUserByEmail).not.toHaveBeenCalled()
   })
 
   it('never re-sends an invitation to a pending user', async () => {
     const usersByEmail = new Map([[account.email, { invited_at: '2026-01-01T00:00:00Z' }]])
-    const result = await processAccount(admin, account, usersByEmail)
+    const result = await processAccount(admin, account, usersByEmail, TEST_SITE_URL)
     expect(result).toBe('invited_pending')
     expect(admin.auth.admin.inviteUserByEmail).not.toHaveBeenCalled()
   })
 
   it('invites a genuinely new user exactly once', async () => {
     admin.auth.admin.inviteUserByEmail.mockResolvedValue({ data: { user: { id: 'new-id' } }, error: null })
-    const result = await processAccount(admin, account, new Map())
+    const result = await processAccount(admin, account, new Map(), TEST_SITE_URL)
     expect(result).toBe('invited')
     expect(admin.auth.admin.inviteUserByEmail).toHaveBeenCalledTimes(1)
     expect(admin.auth.admin.inviteUserByEmail).toHaveBeenCalledWith(
@@ -172,12 +181,28 @@ describe('processAccount (idempotency — no network, mocked admin client)', () 
     )
   })
 
+  it('builds redirectTo from the given siteUrl, targeting /reset-password', async () => {
+    admin.auth.admin.inviteUserByEmail.mockResolvedValue({ data: { user: { id: 'new-id' } }, error: null })
+    await processAccount(admin, account, new Map(), 'http://localhost:3001')
+    expect(admin.auth.admin.inviteUserByEmail).toHaveBeenCalledWith(
+      account.email,
+      expect.objectContaining({ redirectTo: 'http://localhost:3001/reset-password' })
+    )
+  })
+
+  it('never hardcodes port 3000 in the redirect it builds', async () => {
+    admin.auth.admin.inviteUserByEmail.mockResolvedValue({ data: { user: { id: 'new-id' } }, error: null })
+    await processAccount(admin, account, new Map(), 'http://localhost:3001')
+    const [, options] = admin.auth.admin.inviteUserByEmail.mock.calls[0]
+    expect(options.redirectTo).not.toContain('3000')
+  })
+
   it('classifies a rate-limit error distinctly and does not treat it as success', async () => {
     admin.auth.admin.inviteUserByEmail.mockResolvedValue({
       data: null,
       error: { status: 429, message: 'Email rate limit exceeded' },
     })
-    const result = await processAccount(admin, account, new Map())
+    const result = await processAccount(admin, account, new Map(), TEST_SITE_URL)
     expect(result).toBe('rate_limited')
     expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('Limite'))
   })
@@ -187,7 +212,7 @@ describe('processAccount (idempotency — no network, mocked admin client)', () 
       data: null,
       error: { message: 'User already been registered' },
     })
-    const result = await processAccount(admin, account, new Map())
+    const result = await processAccount(admin, account, new Map(), TEST_SITE_URL)
     expect(result).toBe('confirmed')
   })
 
@@ -196,7 +221,7 @@ describe('processAccount (idempotency — no network, mocked admin client)', () 
       data: null,
       error: { message: 'Internal server error' },
     })
-    const result = await processAccount(admin, account, new Map())
+    const result = await processAccount(admin, account, new Map(), TEST_SITE_URL)
     expect(result).toBe('error')
   })
 

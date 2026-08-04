@@ -86,7 +86,7 @@ export class SupabaseAuthAdapter implements AuthAdapter {
 
   async requestPasswordReset(email: string): Promise<void> {
     await supabase().auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password`,
     })
   }
 
