@@ -85,7 +85,7 @@ export function SceneInspector({
           alt={`Miniature de la scène ${scene.number}`}
           className="aspect-video overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)]"
         >
-          <span className="absolute left-2 top-2 rounded-[var(--radius-sm)] bg-[var(--accent-blue-dim)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--accent-blue)]">
+          <span className="absolute left-2 top-2 rounded-[var(--radius-sm)] bg-[var(--interactive-dim)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--interactive)]">
             {String(scene.number).padStart(2, '0')}
           </span>
         </PreviewFrame>
@@ -95,7 +95,7 @@ export function SceneInspector({
             value={scene.title}
             onChange={(event) => onUpdate({ title: event.target.value })}
             aria-label="Titre de la scène"
-            className="mt-4 w-full rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] px-2.5 py-1.5 text-base font-semibold text-[var(--text-primary)] focus:border-[var(--accent-blue)] focus:outline-none"
+            className="mt-4 w-full rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] px-2.5 py-1.5 text-base font-semibold text-[var(--text-primary)] focus:border-[var(--interactive)] focus:outline-none"
           />
         ) : (
           <h3 className="mt-4 text-base font-semibold text-[var(--text-primary)]">{scene.title}</h3>
@@ -107,7 +107,7 @@ export function SceneInspector({
 
         {attachedAsset && (
           <div className="mt-3">
-            <Badge variant={attachedAsset.status === 'ephemeral' ? 'amber' : 'green'}>
+            <Badge variant={attachedAsset.status === 'ephemeral' ? 'warn' : 'ok'}>
               Miniature {ASSET_STATUS_LABELS_FEMININE[attachedAsset.status]}
             </Badge>
           </div>
@@ -121,7 +121,7 @@ export function SceneInspector({
                 onChange={(event) => onUpdate({ description: event.target.value })}
                 rows={3}
                 aria-label="Description du plan"
-                className="w-full resize-none rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] px-2.5 py-1.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent-blue)] focus:outline-none"
+                className="w-full resize-none rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] px-2.5 py-1.5 text-sm text-[var(--text-primary)] focus:border-[var(--interactive)] focus:outline-none"
               />
             ) : (
               <p>{scene.description || '—'}</p>
@@ -158,7 +158,7 @@ export function SceneInspector({
                 value={scene.moment}
                 onChange={(event) => onUpdate({ moment: event.target.value as SceneMoment })}
                 aria-label="Moment de la journée"
-                className="w-full rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] px-2.5 py-1.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent-blue)] focus:outline-none"
+                className="w-full rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] px-2.5 py-1.5 text-sm text-[var(--text-primary)] focus:border-[var(--interactive)] focus:outline-none"
               >
                 {MOMENTS.map((moment) => (
                   <option key={moment} value={moment}>
@@ -179,7 +179,7 @@ export function SceneInspector({
                   onUpdate({ mainShotType: event.target.value as StoryboardScene['mainShotType'] })
                 }
                 aria-label="Type de plan principal"
-                className="w-full rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] px-2.5 py-1.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent-blue)] focus:outline-none"
+                className="w-full rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] px-2.5 py-1.5 text-sm text-[var(--text-primary)] focus:border-[var(--interactive)] focus:outline-none"
               >
                 {SHOT_TYPES.map((shotType) => (
                   <option key={shotType.id} value={shotType.id}>
@@ -199,7 +199,7 @@ export function SceneInspector({
                   value={scene.lighting}
                   onChange={(event) => onUpdate({ lighting: event.target.value })}
                   aria-label="Recette de lumière"
-                  className="w-full rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] px-2.5 py-1.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent-blue)] focus:outline-none"
+                  className="w-full rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] px-2.5 py-1.5 text-sm text-[var(--text-primary)] focus:border-[var(--interactive)] focus:outline-none"
                 >
                   {LIGHTING_RECIPES.map((recipe) => (
                     <option key={recipe.id} value={recipe.id}>
@@ -217,7 +217,7 @@ export function SceneInspector({
                   value={scene.duration}
                   onChange={(event) => onUpdate({ duration: Number(event.target.value) || 1 })}
                   aria-label="Durée de la scène en secondes"
-                  className="w-full rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] px-2.5 py-1.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent-blue)] focus:outline-none"
+                  className="w-full rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] px-2.5 py-1.5 text-sm text-[var(--text-primary)] focus:border-[var(--interactive)] focus:outline-none"
                 />
               </Field>
             </>
@@ -252,7 +252,7 @@ export function SceneInspector({
       </div>
 
       <div className="border-t border-[var(--border-subtle)] px-4 py-3">
-        <p className="mb-2 text-[10px] font-medium uppercase tracking-widest text-[var(--text-muted)]">
+        <p className="mb-2 label-caps">
           Actions
         </p>
         <Button
@@ -275,7 +275,7 @@ export function SceneInspector({
         <button
           type="button"
           onClick={onDelete}
-          className="mt-2 flex w-full items-center justify-center gap-2 rounded-[var(--radius-sm)] py-2 text-sm text-red-400 transition-colors hover:bg-red-500/10"
+          className="mt-2 flex w-full items-center justify-center gap-2 rounded-[var(--radius-sm)] py-2 text-sm text-[var(--state-danger)] transition-colors hover:bg-[var(--state-danger-dim)]"
         >
           <Trash2 size={14} />
           Supprimer la scène
@@ -319,7 +319,7 @@ function TextField({
       value={value}
       aria-label={label}
       onChange={(event) => onChange(event.target.value)}
-      className="w-full rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] px-2.5 py-1.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent-blue)] focus:outline-none"
+      className="w-full rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] px-2.5 py-1.5 text-sm text-[var(--text-primary)] focus:border-[var(--interactive)] focus:outline-none"
     />
   )
 }

@@ -100,7 +100,7 @@ export function PromptComposer({ open, shot, scene, onClose }: PromptComposerPro
           />
 
           <section className="mt-5">
-            <h3 className="text-[10px] font-medium uppercase tracking-widest text-[var(--text-muted)]">
+            <h3 className="label-caps">
               Paramètres validés utilisés
             </h3>
             <dl className="mt-2 grid grid-cols-1 gap-x-6 gap-y-1.5 sm:grid-cols-2">
@@ -121,7 +121,7 @@ export function PromptComposer({ open, shot, scene, onClose }: PromptComposerPro
               type="button"
               onClick={() => setShowContract((value) => !value)}
               aria-expanded={showContract}
-              className="text-xs text-[var(--accent-blue)] transition-colors hover:text-[var(--accent-blue-hover)]"
+              className="text-xs text-[var(--interactive)] transition-colors hover:text-[var(--interactive-hover)]"
             >
               {showContract ? 'Masquer' : 'Afficher'} le contrat JSON ComfyUI (inactif)
             </button>
@@ -181,7 +181,7 @@ function PromptBlock({
           onClick={onCopy}
           className="flex items-center gap-1 rounded px-1.5 py-1 text-[11px] text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
         >
-          {copied ? <Check size={11} className="text-green-400" /> : <Copy size={11} />}
+          {copied ? <Check size={11} className="text-[var(--state-ok)]" /> : <Copy size={11} />}
           {copied ? 'Copié' : 'Copier'}
         </button>
       </div>

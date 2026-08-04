@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { localAuthAdapter } from '@/adapters/auth/LocalAuthAdapter'
 import { useMuseionStore } from '@/store/museionStore'
-import { CinemaSidebar } from '@/components/layout/CinemaSidebar'
+import { AppShell } from '@/components/layout/AppShell'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
 import { Check, ChevronRight } from 'lucide-react'
@@ -52,7 +52,7 @@ const GENRE_OPTIONS: { value: ProjectGenre; label: string }[] = [
 
 export default function NewProjectPage() {
   const router = useRouter()
-  const { addProject, setAuth, setProfile } = useMuseionStore()
+  const { addProject} = useMuseionStore()
   const [step, setStep] = useState<Step>(1)
   const [form, setForm] = useState<NewProjectForm>({
     title: '',
@@ -65,14 +65,6 @@ export default function NewProjectPage() {
     genre: 'drama',
   })
   const [errors, setErrors] = useState<Partial<NewProjectForm>>({})
-
-  useEffect(() => {
-    const session = localAuthAdapter.getSession()
-    if (!session) { router.replace('/login'); return }
-    setAuth(session)
-    const profile = localAuthAdapter.getProfile()
-    if (profile) setProfile(profile)
-  }, [router, setAuth, setProfile])
 
   const session = localAuthAdapter.getSession()
   if (!session) return null
@@ -145,12 +137,11 @@ export default function NewProjectPage() {
   }
 
   return (
-    <div className="flex h-screen bg-[var(--bg-base)] overflow-hidden">
-      <CinemaSidebar />
+    <AppShell>
 
       <div className="flex-1 overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-[var(--bg-base)]/80 backdrop-blur-xl border-b border-[var(--border-subtle)] px-8 py-5">
+        <div className="sticky top-0 z-10 bg-[var(--bg-base)] border-b border-[var(--border-subtle)] px-8 py-5">
           <h1 className="text-xl font-semibold text-[var(--text-primary)]">Nouveau projet cinéma</h1>
           <p className="text-sm text-[var(--text-secondary)] mt-0.5">
             Posez les bases de votre prochain film ou documentaire.
@@ -169,7 +160,7 @@ export default function NewProjectPage() {
                   className={cn(
                     'flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all',
                     step === s.id
-                      ? 'bg-[var(--accent-blue)] text-white'
+                      ? 'bg-[var(--interactive-dim)] text-[var(--text-primary)] border border-[var(--interactive-border)]'
                       : s.id < step
                       ? 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                       : 'text-[var(--text-muted)]'
@@ -177,7 +168,7 @@ export default function NewProjectPage() {
                 >
                   <span className={cn(
                     'w-5 h-5 rounded-full flex items-center justify-center text-xs font-semibold',
-                    step === s.id ? 'bg-white/20' : s.id < step ? 'bg-green-500 text-white' : 'bg-[var(--bg-elevated)] text-[var(--text-muted)]'
+                    step === s.id ? 'bg-[var(--interactive-dim)] text-[var(--text-primary)]' : s.id < step ? 'bg-[var(--state-ok-dim)] text-[var(--state-ok)]' : 'bg-[var(--bg-elevated)] text-[var(--text-muted)]'
                   )}>
                     {s.id < step ? <Check size={10} /> : s.id}
                   </span>
@@ -240,7 +231,7 @@ export default function NewProjectPage() {
               <div className="space-y-6">
                 {/* Type / Format */}
                 <div>
-                  <p className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider mb-3">
+                  <p className="label-caps mb-3">
                     Type
                   </p>
                   <div className="grid grid-cols-3 gap-3">
@@ -251,7 +242,7 @@ export default function NewProjectPage() {
                         className={cn(
                           'p-4 rounded-[var(--radius-lg)] border text-left transition-all',
                           form.type === opt.value
-                            ? 'border-[var(--accent-blue)] bg-[var(--accent-blue-dim)]'
+                            ? 'border-[var(--interactive)] bg-[var(--interactive-dim)]'
                             : 'border-[var(--border-default)] bg-[var(--bg-card)] hover:border-[var(--border-strong)]'
                         )}
                       >
@@ -264,7 +255,7 @@ export default function NewProjectPage() {
 
                 {/* Genre */}
                 <div>
-                  <p className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider mb-3">
+                  <p className="label-caps mb-3">
                     Genre
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -275,7 +266,7 @@ export default function NewProjectPage() {
                         className={cn(
                           'px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
                           form.genre === opt.value
-                            ? 'bg-[var(--accent-blue)] text-white border-[var(--accent-blue)]'
+                            ? 'bg-[var(--interactive-dim)] text-[var(--text-primary)] border-[var(--interactive-border)]'
                             : 'border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]'
                         )}
                       >
@@ -379,6 +370,6 @@ export default function NewProjectPage() {
           </div>
         </div>
       </div>
-    </div>
+    </AppShell>
   )
 }

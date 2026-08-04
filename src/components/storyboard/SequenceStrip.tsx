@@ -44,7 +44,7 @@ export function SequenceStrip({
             className={cn(
               'flex min-w-[140px] flex-1 items-center gap-2 rounded-[var(--radius-md)] border p-2 text-left transition-colors duration-[var(--transition-fast)]',
               active
-                ? 'border-[var(--accent-blue)] bg-[var(--accent-blue-dim)]'
+                ? 'border-[var(--interactive)] bg-[var(--interactive-dim)]'
                 : 'border-[var(--border-subtle)] bg-[var(--bg-card)] hover:border-[var(--border-default)] hover:bg-[var(--bg-card-hover)]'
             )}
           >

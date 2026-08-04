@@ -172,8 +172,8 @@ export function ScriptTab({ project }: ScriptTabProps) {
                     className={cn(
                       'p-1.5 transition-colors rounded',
                       deleteConfirm === scene.id
-                        ? 'text-red-400 bg-red-500/10'
-                        : 'text-[var(--text-muted)] hover:text-red-400'
+                        ? 'text-[var(--state-danger)] bg-[var(--state-danger-dim)]'
+                        : 'text-[var(--text-muted)] hover:text-[var(--state-danger)]'
                     )}
                     title={deleteConfirm === scene.id ? 'Confirmer la suppression ?' : 'Supprimer'}
                   >
@@ -246,7 +246,7 @@ function ScriptBlockEditor({
     'dialogue': 'text-[var(--text-primary)] pl-8 pr-8',
     'parenthetical': 'text-[var(--text-muted)] italic pl-12 pr-12',
     'transition': 'text-[var(--text-secondary)] uppercase text-right font-medium',
-    'note': 'text-amber-400/80 italic bg-amber-500/5 border border-amber-500/10 rounded px-2 py-1',
+    'note': 'text-[var(--state-warn)]/80 italic bg-amber-500/5 border border-amber-500/10 rounded px-2 py-1',
   }
 
   return (
@@ -279,7 +279,7 @@ function ScriptBlockEditor({
       </div>
       <button
         onClick={onRemove}
-        className="shrink-0 text-[var(--text-muted)] hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all p-1 rounded mt-0.5"
+        className="shrink-0 text-[var(--text-muted)] hover:text-[var(--state-danger)] opacity-0 group-hover:opacity-100 transition-all p-1 rounded mt-0.5"
       >
         <Trash2 size={11} />
       </button>

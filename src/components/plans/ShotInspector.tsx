@@ -107,7 +107,7 @@ export function ShotInspector({
           <h3 className="text-lg font-semibold text-[var(--text-primary)]">
             Plan {String(shot.number).padStart(2, '0')}
           </h3>
-          <Badge variant={shot.validated ? 'green' : 'ghost'}>
+          <Badge variant={shot.validated ? 'ok' : 'ghost'}>
             {shot.validated ? 'Validé' : 'À valider'}
           </Badge>
         </div>
@@ -378,7 +378,7 @@ export function ShotInspector({
           <button
             type="button"
             onClick={onDelete}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] py-2 text-xs text-red-400 transition-colors hover:bg-red-500/10"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] py-2 text-xs text-[var(--state-danger)] transition-colors hover:bg-[var(--state-danger-dim)]"
           >
             <Trash2 size={12} />
             Supprimer
@@ -414,7 +414,7 @@ export const LENS_HINTS = LENSES.map((lens) => `${lens.name} — ${lens.focalLen
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mt-5">
-      <h4 className="mb-2 text-[10px] font-medium uppercase tracking-widest text-[var(--text-muted)]">
+      <h4 className="mb-2 label-caps">
         {title}
       </h4>
       {children}
@@ -436,7 +436,7 @@ function Row({ label, value, last }: { label: string; value: string; last?: bool
 }
 
 const fieldClass =
-  'w-full rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] px-2.5 py-1.5 text-xs text-[var(--text-primary)] focus:border-[var(--accent-blue)] focus:outline-none'
+  'w-full rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] px-2.5 py-1.5 text-xs text-[var(--text-primary)] focus:border-[var(--interactive)] focus:outline-none'
 
 function SelectField({
   label,

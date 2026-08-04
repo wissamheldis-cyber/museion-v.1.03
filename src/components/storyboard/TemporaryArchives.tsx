@@ -107,7 +107,7 @@ export function TemporaryArchives({
                           <p className="truncate text-sm font-medium text-[var(--text-primary)]">
                             {asset.name}
                           </p>
-                          <Badge variant={expired ? 'red' : remaining <= 3 ? 'amber' : 'ghost'}>
+                          <Badge variant={expired ? 'danger' : remaining <= 3 ? 'warn' : 'ghost'}>
                             {expired
                               ? 'Échéance dépassée'
                               : `${remaining} jour${remaining > 1 ? 's' : ''} restant${remaining > 1 ? 's' : ''}`}

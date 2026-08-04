@@ -64,7 +64,7 @@ export function AssetBin({ assets, onOpenArchives }: AssetBinProps) {
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Rechercher un asset…"
             aria-label="Rechercher un asset"
-            className="w-full rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-base)] py-1.5 pl-7 pr-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent-blue)] focus:outline-none"
+            className="w-full rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-base)] py-1.5 pl-7 pr-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--interactive)] focus:outline-none"
           />
         </div>
       </div>
@@ -83,7 +83,7 @@ export function AssetBin({ assets, onOpenArchives }: AssetBinProps) {
                   setCollapsed((state) => ({ ...state, [group.id]: !state[group.id] }))
                 }
                 aria-expanded={!isCollapsed}
-                className="flex w-full items-center gap-1 rounded px-1 py-1 text-[10px] font-medium uppercase tracking-widest text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)]"
+                className="flex w-full items-center gap-1 rounded px-1 py-1 label-caps transition-colors hover:text-[var(--text-secondary)]"
               >
                 {isCollapsed ? <ChevronRight size={11} /> : <ChevronDown size={11} />}
                 {group.label}

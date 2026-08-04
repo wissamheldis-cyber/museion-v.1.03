@@ -52,10 +52,10 @@ export function LoglineTab({ project }: LoglineTabProps) {
           onChange={(e) => setDraft(e.target.value)}
           placeholder="Ex : Quand [personnage] veut [objectif], il doit [obstacle] avant que [enjeu]."
           rows={4}
-          className="w-full bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-[var(--radius-md)] px-4 py-3 text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-blue)] focus:ring-1 focus:ring-[var(--accent-blue)]/30 resize-none transition-all leading-relaxed"
+          className="w-full bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-[var(--radius-md)] px-4 py-3 text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--interactive)] focus:ring-1 focus:ring-[var(--interactive)]/30 resize-none transition-all leading-relaxed"
         />
         <div className="absolute bottom-3 right-3 flex items-center gap-3">
-          <span className={`text-xs tabular-nums ${wordCount > 40 ? 'text-amber-400' : 'text-[var(--text-muted)]'}`}>
+          <span className={`text-xs metric ${wordCount > 40 ? 'text-[var(--state-warn)]' : 'text-[var(--text-muted)]'}`}>
             {wordCount} mot{wordCount !== 1 ? 's' : ''}
           </span>
         </div>
@@ -67,7 +67,7 @@ export function LoglineTab({ project }: LoglineTabProps) {
           <div
             key={n}
             className={`h-0.5 flex-1 rounded-full transition-all ${
-              wordCount >= n ? 'bg-[var(--accent-blue)]' : 'bg-[var(--bg-elevated)]'
+              wordCount >= n ? 'bg-[var(--interactive)]' : 'bg-[var(--bg-elevated)]'
             }`}
           />
         ))}
@@ -107,7 +107,7 @@ export function LoglineTab({ project }: LoglineTabProps) {
       {/* Historique des versions */}
       {showHistory && (
         <div className="mt-5 border-t border-[var(--border-subtle)] pt-5">
-          <h3 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-widest mb-3">
+          <h3 className="label-caps mb-3">
             Historique des versions
           </h3>
           {project.loglineHistory.length === 0 ? (
@@ -123,7 +123,7 @@ export function LoglineTab({ project }: LoglineTabProps) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         {version.label && (
-                          <span className="text-[10px] font-medium text-[var(--accent-blue)] bg-[var(--accent-blue-dim)] px-1.5 py-0.5 rounded">
+                          <span className="text-[10px] font-medium text-[var(--interactive)] bg-[var(--interactive-dim)] px-1.5 py-0.5 rounded">
                             {version.label}
                           </span>
                         )}
@@ -131,7 +131,7 @@ export function LoglineTab({ project }: LoglineTabProps) {
                           {formatRelativeDate(version.savedAt)} · {version.wordCount} mots
                         </span>
                         {i === 0 && (
-                          <span className="text-[10px] text-green-400 font-medium">Actuelle</span>
+                          <span className="text-[10px] text-[var(--state-ok)] font-medium">Actuelle</span>
                         )}
                       </div>
                       <p className="text-xs text-[var(--text-secondary)] leading-relaxed">

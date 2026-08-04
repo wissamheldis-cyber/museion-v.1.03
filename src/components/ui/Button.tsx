@@ -8,18 +8,26 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   size?: 'sm' | 'md' | 'lg'
 }
 
+/**
+ * Direction artistique ref1-4 : l'action principale est un fond sombre
+ * cerné d'un filet clair, jamais un aplat de couleur.
+ */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'secondary', size = 'md', children, ...props }, ref) => {
     return (
       <button
         ref={ref}
         className={cn(
-          'inline-flex items-center justify-center gap-2 font-medium rounded-[var(--radius-sm)] transition-all duration-[var(--transition-fast)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-blue)] disabled:opacity-40 disabled:cursor-not-allowed select-none',
+          'inline-flex items-center justify-center gap-2 font-medium rounded-[var(--radius-sm)] transition-all duration-[var(--transition-fast)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--interactive)] disabled:opacity-40 disabled:cursor-not-allowed select-none',
           {
-            'bg-[var(--accent-blue)] text-white hover:bg-[var(--accent-blue-hover)] active:scale-[0.98]': variant === 'primary',
-            'bg-[var(--bg-elevated)] text-[var(--text-primary)] border border-[var(--border-default)] hover:bg-[var(--bg-card-hover)] active:scale-[0.98]': variant === 'secondary',
-            'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]': variant === 'ghost',
-            'bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20': variant === 'danger',
+            'bg-[var(--bg-elevated)] text-[var(--text-primary)] border border-[var(--interactive-border)] hover:bg-[var(--bg-card-hover)] hover:border-[var(--interactive)] active:scale-[0.98]':
+              variant === 'primary',
+            'bg-[var(--bg-card)] text-[var(--text-secondary)] border border-[var(--border-default)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)] active:scale-[0.98]':
+              variant === 'secondary',
+            'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)]':
+              variant === 'ghost',
+            'bg-[var(--state-danger-dim)] text-[var(--state-danger)] border border-[var(--state-danger)]/25 hover:bg-[var(--state-danger)]/15':
+              variant === 'danger',
           },
           {
             'text-xs px-2.5 py-1.5 h-7': size === 'sm',

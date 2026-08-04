@@ -1,11 +1,9 @@
 'use client'
 
-import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { localAuthAdapter } from '@/adapters/auth/LocalAuthAdapter'
 import { useMuseionStore } from '@/store/museionStore'
-import { CinemaSidebar } from '@/components/layout/CinemaSidebar'
+import { AppShell } from '@/components/layout/AppShell'
 import { StatusBadge, TraceBadge } from '@/components/ui/Badge'
 import { ProgressBar } from '@/components/ui/ProgressBar'
 import { Button } from '@/components/ui/Button'
@@ -18,7 +16,6 @@ import {
   Star,
   Library,
   Package,
-  ChevronRight,
 } from 'lucide-react'
 
 const QUICK_LINKS = [
@@ -33,34 +30,17 @@ const QUICK_LINKS = [
 
 export default function GilgameshWorkspacePage() {
   const router = useRouter()
-  const { projects, setAuth, setProfile } = useMuseionStore()
-
-  useEffect(() => {
-    const session = localAuthAdapter.getSession()
-    if (!session) { router.replace('/login'); return }
-    setAuth(session)
-    const profile = localAuthAdapter.getProfile()
-    if (profile) setProfile(profile)
-  }, [router, setAuth, setProfile])
+  const { projects} = useMuseionStore()
 
   const project = projects.find((p) => p.slug === 'gilgamesh')
   if (!project) return null
 
   return (
-    <div className="flex h-screen bg-[var(--bg-base)] overflow-hidden">
-      <CinemaSidebar projectSlug="gilgamesh" />
+    <AppShell projectSlug="gilgamesh">
 
       <div className="flex-1 overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-[var(--bg-base)]/80 backdrop-blur-xl border-b border-[var(--border-subtle)] px-8 py-4">
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-2 text-xs text-[var(--text-muted)] mb-2">
-            <Link href="/cinema" className="hover:text-[var(--text-secondary)] transition-colors">Cinéma</Link>
-            <ChevronRight size={12} />
-            <Link href="/cinema/projects" className="hover:text-[var(--text-secondary)] transition-colors">Projets</Link>
-            <ChevronRight size={12} />
-            <span className="text-[var(--text-secondary)]">{project.title}</span>
-          </div>
+        <div className="sticky top-0 z-10 bg-[var(--bg-base)] border-b border-[var(--border-subtle)] px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <h1 className="text-xl font-semibold text-[var(--text-primary)]">{project.title}</h1>
@@ -78,9 +58,9 @@ export default function GilgameshWorkspacePage() {
           <div className="rounded-[var(--radius-lg)] bg-[var(--bg-card)] border border-[var(--border-subtle)] p-6">
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-medium text-[var(--text-primary)]">Progression globale</p>
-              <span className="text-sm font-semibold text-[var(--accent-blue)]">{project.completionPercent}%</span>
+              <span className="text-sm font-semibold text-[var(--interactive)]">{project.completionPercent}%</span>
             </div>
-            <ProgressBar value={project.completionPercent} color="blue" className="mb-4" />
+            <ProgressBar value={project.completionPercent} color="neutral" className="mb-4" />
             <p className="text-xs text-[var(--text-muted)]">
               Dernière modification {formatRelativeDate(project.updatedAt)}
             </p>
@@ -88,7 +68,7 @@ export default function GilgameshWorkspacePage() {
 
           {/* Logline */}
           <div>
-            <h2 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-widest mb-3">Logline</h2>
+            <h2 className="label-caps mb-3">Logline</h2>
             <p className="text-sm text-[var(--text-secondary)] leading-relaxed italic bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] px-4 py-3">
               &ldquo;{project.logline}&rdquo;
             </p>
@@ -96,7 +76,7 @@ export default function GilgameshWorkspacePage() {
 
           {/* Navigation rapide */}
           <div>
-            <h2 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-widest mb-4">Sections du projet</h2>
+            <h2 className="label-caps mb-4">Sections du projet</h2>
             <div className="grid grid-cols-3 gap-3">
               {QUICK_LINKS.map((link) => (
                 <Link
@@ -104,8 +84,8 @@ export default function GilgameshWorkspacePage() {
                   href={link.href}
                   className="group flex items-start gap-3 p-4 rounded-[var(--radius-lg)] bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:border-[var(--border-default)] hover:bg-[var(--bg-card-hover)] transition-all"
                 >
-                  <div className="w-8 h-8 rounded-[var(--radius-sm)] bg-[var(--bg-elevated)] flex items-center justify-center shrink-0 group-hover:bg-[var(--accent-blue-dim)] transition-colors">
-                    <link.icon size={15} className="text-[var(--text-muted)] group-hover:text-[var(--accent-blue)] transition-colors" />
+                  <div className="w-8 h-8 rounded-[var(--radius-sm)] bg-[var(--bg-elevated)] flex items-center justify-center shrink-0 group-hover:bg-[var(--interactive-dim)] transition-colors">
+                    <link.icon size={15} className="text-[var(--text-muted)] group-hover:text-[var(--interactive)] transition-colors" />
                   </div>
                   <div>
                     <p className="text-sm font-medium text-[var(--text-primary)]">{link.label}</p>
@@ -118,7 +98,7 @@ export default function GilgameshWorkspacePage() {
 
           {/* Personnages */}
           <div>
-            <h2 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-widest mb-4">
+            <h2 className="label-caps mb-4">
               Personnages ({project.characters.length})
             </h2>
             <div className="flex gap-3">
@@ -142,7 +122,7 @@ export default function GilgameshWorkspacePage() {
           {/* Traces créatives */}
           {project.traces.length > 0 && (
             <div>
-              <h2 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-widest mb-4">
+              <h2 className="label-caps mb-4">
                 Décisions & questions
               </h2>
               <div className="space-y-2">
@@ -160,6 +140,6 @@ export default function GilgameshWorkspacePage() {
           )}
         </div>
       </div>
-    </div>
+    </AppShell>
   )
 }

@@ -1,11 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { localAuthAdapter } from '@/adapters/auth/LocalAuthAdapter'
+import { useState } from 'react'
 import { useMuseionStore } from '@/store/museionStore'
-import { CinemaSidebar } from '@/components/layout/CinemaSidebar'
+import { AppShell } from '@/components/layout/AppShell'
 import { TraceBadge, StatusBadge } from '@/components/ui/Badge'
 import { SaveIndicator } from '@/components/ui/SaveIndicator'
 import { ProgressBar } from '@/components/ui/ProgressBar'
@@ -16,7 +13,7 @@ import { TreatmentTab } from '@/components/cinema/TreatmentTab'
 import { ScriptTab } from '@/components/cinema/ScriptTab'
 import { CharactersTab } from '@/components/cinema/CharactersTab'
 import { ArtisticDossierTab } from '@/components/cinema/ArtisticDossierTab'
-import { ChevronRight, Layers } from 'lucide-react'
+import { Layers } from 'lucide-react'
 import { FORMAT_LABELS } from '@/lib/utils'
 
 type TabId = 'vision' | 'logline' | 'synopsis' | 'treatment' | 'script' | 'characters' | 'dossier'
@@ -32,36 +29,18 @@ const TABS: { id: TabId; label: string }[] = [
 ]
 
 export default function GilgameshDevelopmentPage() {
-  const router = useRouter()
-  const { projects, setAuth, setProfile } = useMuseionStore()
+  const { projects} = useMuseionStore()
   const [activeTab, setActiveTab] = useState<TabId>('vision')
-
-  useEffect(() => {
-    const session = localAuthAdapter.getSession()
-    if (!session) { router.replace('/login'); return }
-    setAuth(session)
-    const profile = localAuthAdapter.getProfile()
-    if (profile) setProfile(profile)
-  }, [router, setAuth, setProfile])
 
   const project = projects.find((p) => p.slug === 'gilgamesh')
   if (!project) return null
 
   return (
-    <div className="flex h-screen bg-[var(--bg-base)] overflow-hidden">
-      <CinemaSidebar projectSlug="gilgamesh" />
+    <AppShell projectSlug="gilgamesh">
 
       <div className="flex-1 overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-[var(--bg-base)]/90 backdrop-blur-xl border-b border-[var(--border-subtle)] px-8 py-4">
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-2 text-xs text-[var(--text-muted)] mb-2">
-            <Link href="/cinema/projects" className="hover:text-[var(--text-secondary)] transition-colors">Projets</Link>
-            <ChevronRight size={12} />
-            <Link href="/cinema/projects/gilgamesh" className="hover:text-[var(--text-secondary)] transition-colors">{project.title}</Link>
-            <ChevronRight size={12} />
-            <span className="text-[var(--text-secondary)]">Développement</span>
-          </div>
+        <div className="sticky top-0 z-10 bg-[var(--bg-base)] border-b border-[var(--border-subtle)] px-8 py-4">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-semibold text-[var(--text-primary)]">
@@ -81,7 +60,7 @@ export default function GilgameshDevelopmentPage() {
           {/* Contenu principal */}
           <div className="flex-1 min-w-0">
             {/* Onglets */}
-            <div className="sticky top-[89px] z-10 bg-[var(--bg-base)]/90 backdrop-blur-xl border-b border-[var(--border-subtle)] px-8">
+            <div className="sticky top-[89px] z-10 bg-[var(--bg-base)] border-b border-[var(--border-subtle)] px-8">
               <div className="flex gap-0">
                 {TABS.map((tab) => (
                   <button
@@ -89,7 +68,7 @@ export default function GilgameshDevelopmentPage() {
                     onClick={() => setActiveTab(tab.id)}
                     className={`px-4 py-3 text-sm font-medium border-b-2 transition-all duration-[var(--transition-fast)] ${
                       activeTab === tab.id
-                        ? 'border-[var(--accent-blue)] text-[var(--accent-blue)]'
+                        ? 'border-[var(--interactive)] text-[var(--interactive)]'
                         : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
                     }`}
                   >
@@ -138,9 +117,9 @@ export default function GilgameshDevelopmentPage() {
                 <div className="pt-2">
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Progression</p>
-                    <p className="text-[10px] text-[var(--accent-blue)] font-medium">{project.completionPercent}%</p>
+                    <p className="text-[10px] text-[var(--interactive)] font-medium">{project.completionPercent}%</p>
                   </div>
-                  <ProgressBar value={project.completionPercent} color="blue" />
+                  <ProgressBar value={project.completionPercent} color="neutral" />
                 </div>
               </div>
 
@@ -184,6 +163,6 @@ export default function GilgameshDevelopmentPage() {
           </div>
         </div>
       </div>
-    </div>
+    </AppShell>
   )
 }

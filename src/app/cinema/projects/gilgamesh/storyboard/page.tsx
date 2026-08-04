@@ -1,8 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import {
   DndContext,
   DragOverlay,
@@ -14,7 +12,6 @@ import {
 } from '@dnd-kit/core'
 import {
   Archive,
-  ChevronRight,
   LayoutGrid,
   PanelLeftClose,
   PanelLeftOpen,
@@ -23,9 +20,8 @@ import {
   SlidersHorizontal,
   Workflow,
 } from 'lucide-react'
-import { localAuthAdapter } from '@/adapters/auth/LocalAuthAdapter'
 import { useMuseionStore } from '@/store/museionStore'
-import { CinemaSidebar } from '@/components/layout/CinemaSidebar'
+import { AppShell } from '@/components/layout/AppShell'
 import { SaveIndicator } from '@/components/ui/SaveIndicator'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { PreviewFrame } from '@/components/ui/PreviewFrame'
@@ -43,10 +39,7 @@ type TabId = 'classic' | 'dynamic'
 const MOMENT_FILTERS: (SceneMoment | 'all')[] = ['all', 'Aube', 'Jour', 'Crépuscule', 'Nuit']
 
 export default function StoryboardPage() {
-  const router = useRouter()
 
-  const setAuth = useMuseionStore((s) => s.setAuth)
-  const setProfile = useMuseionStore((s) => s.setProfile)
   const projects = useMuseionStore((s) => s.projects)
   const sequences = useMuseionStore((s) => s.sequences)
   const scenes = useMuseionStore((s) => s.scenes)
@@ -85,17 +78,6 @@ export default function StoryboardPage() {
   const [binOpen, setBinOpen] = useState(true)
   const [inspectorOpen, setInspectorOpen] = useState(true)
   const [draggedAssetId, setDraggedAssetId] = useState<string | null>(null)
-
-  useEffect(() => {
-    const session = localAuthAdapter.getSession()
-    if (!session) {
-      router.replace('/login')
-      return
-    }
-    setAuth(session)
-    const profile = localAuthAdapter.getProfile()
-    if (profile) setProfile(profile)
-  }, [router, setAuth, setProfile])
 
   // Panneaux rétractables : repliés automatiquement sous 1280 px
   useEffect(() => {
@@ -187,27 +169,11 @@ export default function StoryboardPage() {
   const draggedAsset = draggedAssetId ? assets.find((a) => a.id === draggedAssetId) : undefined
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--bg-base)]">
-      <CinemaSidebar projectSlug="gilgamesh" />
+    <AppShell projectSlug="gilgamesh">
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* En-tête */}
         <header className="border-b border-[var(--border-subtle)] bg-[var(--bg-base)]/90 px-6 py-4 backdrop-blur-xl">
-          <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
-            <Link
-              href="/cinema/projects"
-              className="transition-colors hover:text-[var(--text-secondary)]"
-            >
-              Projets cinéma
-            </Link>
-            <ChevronRight size={12} />
-            <Link
-              href="/cinema/projects/gilgamesh"
-              className="transition-colors hover:text-[var(--text-secondary)]"
-            >
-              {project.title}
-            </Link>
-          </div>
 
           <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
             <div>
@@ -249,7 +215,7 @@ export default function StoryboardPage() {
                     className={cn(
                       'flex h-9 items-center gap-2 rounded-[var(--radius-sm)] border px-3 text-sm transition-colors',
                       filtersActive
-                        ? 'border-[var(--accent-blue)] bg-[var(--accent-blue-dim)] text-[var(--accent-blue)]'
+                        ? 'border-[var(--interactive)] bg-[var(--interactive-dim)] text-[var(--interactive)]'
                         : 'border-[var(--border-default)] bg-[var(--bg-elevated)] text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)]'
                     )}
                   >
@@ -259,7 +225,7 @@ export default function StoryboardPage() {
 
                   {filtersOpen && (
                     <div className="absolute right-0 top-11 z-30 w-60 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-elevated)] p-3 shadow-xl">
-                      <p className="text-[10px] font-medium uppercase tracking-widest text-[var(--text-muted)]">
+                      <p className="label-caps">
                         Moment
                       </p>
                       <div className="mt-1.5 flex flex-wrap gap-1">
@@ -273,7 +239,7 @@ export default function StoryboardPage() {
                         ))}
                       </div>
 
-                      <p className="mt-3 text-[10px] font-medium uppercase tracking-widest text-[var(--text-muted)]">
+                      <p className="mt-3 label-caps">
                         Intérieur / Extérieur
                       </p>
                       <div className="mt-1.5 flex flex-wrap gap-1">
@@ -425,7 +391,7 @@ export default function StoryboardPage() {
           setSceneToDelete(null)
         }}
       />
-    </div>
+    </AppShell>
   )
 }
 
@@ -449,7 +415,7 @@ function TabButton({
       className={cn(
         'flex items-center gap-2 rounded-[var(--radius-sm)] px-3 py-1.5 text-sm transition-colors duration-[var(--transition-fast)]',
         active
-          ? 'bg-[var(--accent-blue-dim)] text-[var(--accent-blue)]'
+          ? 'bg-[var(--interactive-dim)] text-[var(--interactive)]'
           : 'text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)]'
       )}
     >
@@ -476,7 +442,7 @@ function FilterChip({
       className={cn(
         'rounded-full border px-2.5 py-1 text-[11px] transition-colors',
         active
-          ? 'border-[var(--accent-blue)] bg-[var(--accent-blue-dim)] text-[var(--accent-blue)]'
+          ? 'border-[var(--interactive)] bg-[var(--interactive-dim)] text-[var(--interactive)]'
           : 'border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
       )}
     >

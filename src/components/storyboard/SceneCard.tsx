@@ -55,7 +55,7 @@ export function SceneCard({
       className={cn(
         'group relative rounded-[var(--radius-md)] border bg-[var(--bg-card)] transition-colors duration-[var(--transition-fast)]',
         selected
-          ? 'border-[var(--accent-blue)] ring-1 ring-[var(--accent-blue)]/40'
+          ? 'border-[var(--interactive)] ring-1 ring-[var(--interactive)]/40'
           : 'border-[var(--border-subtle)] hover:border-[var(--border-default)]',
         isDragging && 'opacity-50',
         isOver && !isDragging && 'border-[var(--accent-champagne)]'
@@ -81,12 +81,12 @@ export function SceneCard({
         <div className="px-3 py-2.5">
           <div className="flex items-baseline justify-between gap-2">
             <p className="truncate text-sm font-medium text-[var(--text-primary)]">{scene.title}</p>
-            <span className="shrink-0 text-xs tabular-nums text-[var(--text-muted)]">
+            <span className="shrink-0 text-xs metric text-[var(--text-muted)]">
               {formatTimecode(scene.duration)}
             </span>
           </div>
           <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[var(--text-secondary)]">
-            <span className="text-[var(--accent-blue)]">Intention</span> : {scene.intention}
+            <span className="text-[var(--interactive)]">Intention</span> : {scene.intention}
           </p>
           <p className="mt-1.5 truncate text-[11px] text-[var(--text-muted)]">
             {scene.timeOfDay} · {scene.moment} · {scene.location}
@@ -191,7 +191,7 @@ function MenuItem({
       className={cn(
         'flex w-full items-center gap-2 px-3 py-2 text-left text-xs transition-colors',
         destructive
-          ? 'text-red-400 hover:bg-red-500/10'
+          ? 'text-[var(--state-danger)] hover:bg-[var(--state-danger-dim)]'
           : 'text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)]'
       )}
     >

@@ -82,7 +82,7 @@ function CanvasInner({
             intention: scene.intention,
             duration: scene.duration,
             thumbUrl: sceneThumbUrl(scene, assets),
-            color: sequence?.color ?? '#3b8ef0',
+            color: sequence?.color ?? '#ececea',
             isSelected: scene.id === selectedSceneId,
           },
         }
@@ -99,15 +99,15 @@ function CanvasInner({
         label: edge.label,
         animated: edge.type === 'alternative',
         style: {
-          stroke: edge.type === 'alternative' ? '#c9a84c' : '#3b8ef0',
-          strokeWidth: edge.id === selectedEdgeId ? 2.5 : 1.5,
+          stroke: edge.type === 'alternative' ? '#c9a84c' : 'rgba(255,255,255,0.32)',
+          strokeWidth: edge.id === selectedEdgeId ? 2 : 1.25,
           strokeDasharray: edge.type === 'alternative' ? '5 4' : undefined,
         },
-        labelStyle: { fill: '#8a8f9e', fontSize: 10 },
-        labelBgStyle: { fill: '#0f1219' },
+        labelStyle: { fill: '#8e9099', fontSize: 10 },
+        labelBgStyle: { fill: '#0d0e11' },
         markerEnd: {
           type: MarkerType.ArrowClosed,
-          color: edge.type === 'alternative' ? '#c9a84c' : '#3b8ef0',
+          color: edge.type === 'alternative' ? '#c9a84c' : 'rgba(255,255,255,0.45)',
         },
       })),
     [storyboardEdges, selectedEdgeId]
@@ -165,7 +165,7 @@ function CanvasInner({
       {/* Barre d'outils du canvas */}
       <div className="absolute left-3 top-3 z-10 flex flex-wrap items-center gap-2">
         <div
-          className="glass flex items-center gap-1 rounded-[var(--radius-md)] p-1"
+          className="panel flex items-center gap-1 rounded-[var(--radius-md)] p-1"
           role="group"
           aria-label="Type de connexion à créer"
         >
@@ -183,7 +183,7 @@ function CanvasInner({
           />
         </div>
 
-        <div className="glass flex items-center gap-1 rounded-[var(--radius-md)] p-1">
+        <div className="panel flex items-center gap-1 rounded-[var(--radius-md)] p-1">
           <ToolbarButton
             onClick={() => fitView({ padding: 0.2, duration: 200 })}
             icon={Crosshair}
@@ -202,7 +202,7 @@ function CanvasInner({
 
       {/* Panneau de connexion sélectionnée */}
       {selectedEdge && (
-        <div className="glass absolute bottom-3 left-3 z-10 max-w-xs rounded-[var(--radius-md)] p-3">
+        <div className="panel absolute bottom-3 left-3 z-10 max-w-xs rounded-[var(--radius-md)] p-3">
           <p className="text-xs font-medium text-[var(--text-primary)]">
             Connexion {selectedEdge.type === 'alternative' ? 'alternative' : 'séquentielle'}
           </p>
@@ -218,7 +218,7 @@ function CanvasInner({
               onRemoveEdge(selectedEdge.id)
               setSelectedEdgeId(null)
             }}
-            className="mt-2 flex items-center gap-1.5 rounded-[var(--radius-sm)] px-2 py-1 text-xs text-red-400 transition-colors hover:bg-red-500/10"
+            className="mt-2 flex items-center gap-1.5 rounded-[var(--radius-sm)] px-2 py-1 text-xs text-[var(--state-danger)] transition-colors hover:bg-[var(--state-danger-dim)]"
           >
             <Unlink size={12} />
             Supprimer la connexion
@@ -246,7 +246,7 @@ function CanvasInner({
         proOptions={{ hideAttribution: true }}
         className="museion-canvas"
       >
-        <Background variant={BackgroundVariant.Dots} gap={22} size={1} color="#1c2030" />
+        <Background variant={BackgroundVariant.Dots} gap={22} size={1} color="#1a1c21" />
         <Controls
           showInteractive={false}
           className="!border-[var(--border-default)] !bg-[var(--bg-surface)]"
@@ -285,7 +285,7 @@ function ToolbarToggle({
       className={cn(
         'flex items-center gap-1.5 rounded-[var(--radius-sm)] px-2 py-1.5 text-xs transition-colors',
         active
-          ? 'bg-[var(--accent-blue-dim)] text-[var(--accent-blue)]'
+          ? 'bg-[var(--interactive-dim)] text-[var(--interactive)]'
           : 'text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)]'
       )}
     >

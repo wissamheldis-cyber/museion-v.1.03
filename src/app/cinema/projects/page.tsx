@@ -2,11 +2,10 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
 import Link from 'next/link'
 import { localAuthAdapter } from '@/adapters/auth/LocalAuthAdapter'
 import { useMuseionStore } from '@/store/museionStore'
-import { CinemaSidebar } from '@/components/layout/CinemaSidebar'
+import { AppShell } from '@/components/layout/AppShell'
 import { StatusBadge } from '@/components/ui/Badge'
 import { ProgressBar } from '@/components/ui/ProgressBar'
 import { Button } from '@/components/ui/Button'
@@ -27,21 +26,13 @@ const GENRES = ['', 'historical', 'epic', 'drama', 'thriller', 'documentary', 'f
 
 export default function ProjectsListPage() {
   const router = useRouter()
-  const { projects, toggleFavorite, setAuth, setProfile } = useMuseionStore()
+  const { projects, toggleFavorite} = useMuseionStore()
 
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [formatFilter, setFormatFilter] = useState('')
   const [genreFilter, setGenreFilter] = useState('')
   const [showArchived, setShowArchived] = useState(false)
-
-  useEffect(() => {
-    const session = localAuthAdapter.getSession()
-    if (!session) { router.replace('/login'); return }
-    setAuth(session)
-    const profile = localAuthAdapter.getProfile()
-    if (profile) setProfile(profile)
-  }, [router, setAuth, setProfile])
 
   const filtered = useMemo(() => {
     return projects.filter((p) => {
@@ -62,12 +53,11 @@ export default function ProjectsListPage() {
   if (!session) return null
 
   return (
-    <div className="flex h-screen bg-[var(--bg-base)] overflow-hidden">
-      <CinemaSidebar />
+    <AppShell>
 
       <div className="flex-1 overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-[var(--bg-base)]/80 backdrop-blur-xl border-b border-[var(--border-subtle)] px-8 py-5 flex items-center justify-between">
+        <div className="sticky top-0 z-10 bg-[var(--bg-base)] border-b border-[var(--border-subtle)] px-8 py-5 flex items-center justify-between">
           <div>
             <h1 className="text-xl font-semibold text-[var(--text-primary)]">Tous les projets cinéma</h1>
             <p className="text-sm text-[var(--text-secondary)] mt-0.5">
@@ -96,7 +86,7 @@ export default function ProjectsListPage() {
                   placeholder="Rechercher un projet…"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-sm)] pl-8 pr-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-blue)] transition-colors"
+                  className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-sm)] pl-8 pr-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--interactive)] transition-colors"
                 />
               </div>
               <FilterSelect
@@ -167,7 +157,7 @@ export default function ProjectsListPage() {
                   <Link
                     key={p.id}
                     href={`/cinema/projects/${p.slug}`}
-                    className="block text-xs text-[var(--text-secondary)] hover:text-[var(--accent-blue)] px-2 py-1.5 rounded-[var(--radius-sm)] hover:bg-[var(--bg-surface)] transition-colors truncate"
+                    className="block text-xs text-[var(--text-secondary)] hover:text-[var(--interactive)] px-2 py-1.5 rounded-[var(--radius-sm)] hover:bg-[var(--bg-surface)] transition-colors truncate"
                   >
                     {p.title}
                   </Link>
@@ -197,7 +187,7 @@ export default function ProjectsListPage() {
           </div>
         </div>
       </div>
-    </div>
+    </AppShell>
   )
 }
 
@@ -210,14 +200,14 @@ function ProjectRow({ project, onToggleFavorite }: { project: Project; onToggleF
           className="w-full h-full opacity-30"
           style={{
             background: project.slug === 'gilgamesh'
-              ? 'linear-gradient(135deg, #8b4513, #1a1208)'
+              ? 'linear-gradient(135deg, #2a2b2f, #0d0e11)'
               : project.slug === 'akhenaton'
-              ? 'linear-gradient(135deg, #c9a84c, #1a1408)'
+              ? 'linear-gradient(135deg, #35363a, #0d0e11)'
               : project.slug === 'alexandre'
-              ? 'linear-gradient(135deg, #3b5ea6, #0a0c18)'
+              ? 'linear-gradient(135deg, #202126, #0d0e11)'
               : project.slug === 'civilisation'
-              ? 'linear-gradient(135deg, #2d8a4e, #0a1208)'
-              : 'linear-gradient(135deg, #555, #111)',
+              ? 'linear-gradient(135deg, #26272b, #0d0e11)'
+              : 'linear-gradient(135deg, #1c1d21, #0d0e11)',
           }}
         />
       </div>
@@ -227,7 +217,7 @@ function ProjectRow({ project, onToggleFavorite }: { project: Project; onToggleF
         <div className="flex items-center gap-2 mb-1">
           <Link
             href={`/cinema/projects/${project.slug}`}
-            className="text-sm font-medium text-[var(--text-primary)] hover:text-[var(--accent-blue)] transition-colors truncate"
+            className="text-sm font-medium text-[var(--text-primary)] hover:text-[var(--interactive)] transition-colors truncate"
           >
             {project.title}
           </Link>
@@ -258,8 +248,8 @@ function ProjectRow({ project, onToggleFavorite }: { project: Project; onToggleF
           className={cn(
             'p-1.5 rounded transition-colors',
             project.isFavorite
-              ? 'text-amber-400 hover:text-amber-300'
-              : 'text-[var(--text-muted)] hover:text-amber-400'
+              ? 'text-[var(--state-warn)] hover:text-amber-300'
+              : 'text-[var(--text-muted)] hover:text-[var(--state-warn)]'
           )}
           title={project.isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
         >
@@ -267,7 +257,7 @@ function ProjectRow({ project, onToggleFavorite }: { project: Project; onToggleF
         </button>
         <Link
           href={`/cinema/projects/${project.slug}`}
-          className="text-xs text-[var(--accent-blue)] hover:text-[var(--accent-blue-hover)] transition-colors px-2 py-1 rounded bg-[var(--accent-blue-dim)]"
+          className="text-xs text-[var(--interactive)] hover:text-[var(--interactive-hover)] transition-colors px-2 py-1 rounded bg-[var(--interactive-dim)]"
         >
           Ouvrir
         </Link>
@@ -290,7 +280,7 @@ function FilterSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="appearance-none bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-sm)] pl-3 pr-7 py-2 text-sm text-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent-blue)] cursor-pointer transition-colors"
+        className="appearance-none bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-sm)] pl-3 pr-7 py-2 text-sm text-[var(--text-secondary)] focus:outline-none focus:border-[var(--interactive)] cursor-pointer transition-colors"
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value} className="bg-[var(--bg-surface)]">

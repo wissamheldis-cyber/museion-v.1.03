@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { StoreHydration } from '@/components/layout/StoreHydration'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -17,6 +18,7 @@ export default function RootLayout({
   return (
     <html lang="fr" className="h-full" data-scroll-behavior="smooth">
       <body className="min-h-full bg-museion-base text-museion-primary antialiased">
+        <StoreHydration />
         {children}
       </body>
     </html>

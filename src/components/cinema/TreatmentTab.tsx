@@ -43,7 +43,7 @@ export function TreatmentTab({ project }: TreatmentTabProps) {
       {/* Acte I */}
       <div className="rounded-[var(--radius-lg)] bg-[var(--bg-card)] border border-[var(--border-subtle)] p-5 space-y-4">
         <div className="flex items-center gap-3">
-          <div className="w-7 h-7 rounded-full bg-[var(--accent-blue-dim)] flex items-center justify-center text-xs font-bold text-[var(--accent-blue)]">I</div>
+          <div className="w-7 h-7 rounded-full bg-[var(--interactive-dim)] flex items-center justify-center text-xs font-bold text-[var(--interactive)]">I</div>
           <h3 className="text-sm font-semibold text-[var(--text-primary)]">Acte I — Exposition</h3>
         </div>
         <Textarea
@@ -60,7 +60,7 @@ export function TreatmentTab({ project }: TreatmentTabProps) {
             <ul className="space-y-1">
               {local.actI.keyMoments.map((m, i) => (
                 <li key={i} className="text-xs text-[var(--text-secondary)] flex items-start gap-2">
-                  <span className="text-[var(--accent-blue)] mt-0.5">·</span>
+                  <span className="text-[var(--interactive)] mt-0.5">·</span>
                   {m}
                 </li>
               ))}
@@ -101,7 +101,7 @@ export function TreatmentTab({ project }: TreatmentTabProps) {
       {/* Acte III */}
       <div className="rounded-[var(--radius-lg)] bg-[var(--bg-card)] border border-[var(--border-subtle)] p-5 space-y-4">
         <div className="flex items-center gap-3">
-          <div className="w-7 h-7 rounded-full bg-green-500/10 flex items-center justify-center text-xs font-bold text-green-400">III</div>
+          <div className="w-7 h-7 rounded-full bg-[var(--state-ok-dim)] flex items-center justify-center text-xs font-bold text-[var(--state-ok)]">III</div>
           <h3 className="text-sm font-semibold text-[var(--text-primary)]">Acte III — Résolution</h3>
         </div>
         <Textarea
@@ -118,7 +118,7 @@ export function TreatmentTab({ project }: TreatmentTabProps) {
             <ul className="space-y-1">
               {local.actIII.keyMoments.map((m, i) => (
                 <li key={i} className="text-xs text-[var(--text-secondary)] flex items-start gap-2">
-                  <span className="text-green-400 mt-0.5">·</span>
+                  <span className="text-[var(--state-ok)] mt-0.5">·</span>
                   {m}
                 </li>
               ))}

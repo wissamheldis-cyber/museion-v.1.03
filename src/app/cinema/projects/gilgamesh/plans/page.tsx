@@ -1,10 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import {
-  ChevronRight,
   LayoutGrid,
   PanelRightClose,
   PanelRightOpen,
@@ -12,9 +9,8 @@ import {
   Rows3,
   Search,
 } from 'lucide-react'
-import { localAuthAdapter } from '@/adapters/auth/LocalAuthAdapter'
 import { useMuseionStore } from '@/store/museionStore'
-import { CinemaSidebar } from '@/components/layout/CinemaSidebar'
+import { AppShell } from '@/components/layout/AppShell'
 import { SaveIndicator } from '@/components/ui/SaveIndicator'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { ShotCard } from '@/components/plans/ShotCard'
@@ -28,10 +24,7 @@ import { cn } from '@/lib/utils'
 type ViewMode = 'grid' | 'table'
 
 export default function PlansPage() {
-  const router = useRouter()
 
-  const setAuth = useMuseionStore((s) => s.setAuth)
-  const setProfile = useMuseionStore((s) => s.setProfile)
   const projects = useMuseionStore((s) => s.projects)
   const sequences = useMuseionStore((s) => s.sequences)
   const scenes = useMuseionStore((s) => s.scenes)
@@ -55,17 +48,6 @@ export default function PlansPage() {
   const [inspectorOpen, setInspectorOpen] = useState(true)
   const [promptOpen, setPromptOpen] = useState(false)
   const [shotToDelete, setShotToDelete] = useState<Shot | null>(null)
-
-  useEffect(() => {
-    const session = localAuthAdapter.getSession()
-    if (!session) {
-      router.replace('/login')
-      return
-    }
-    setAuth(session)
-    const profile = localAuthAdapter.getProfile()
-    if (profile) setProfile(profile)
-  }, [router, setAuth, setProfile])
 
   useEffect(() => {
     const apply = () => setInspectorOpen(window.innerWidth >= 1280)
@@ -134,26 +116,10 @@ export default function PlansPage() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--bg-base)]">
-      <CinemaSidebar projectSlug="gilgamesh" />
+    <AppShell projectSlug="gilgamesh">
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="border-b border-[var(--border-subtle)] bg-[var(--bg-base)]/90 px-6 py-4 backdrop-blur-xl">
-          <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
-            <Link
-              href="/cinema/projects"
-              className="transition-colors hover:text-[var(--text-secondary)]"
-            >
-              Projets cinéma
-            </Link>
-            <ChevronRight size={12} />
-            <Link
-              href="/cinema/projects/gilgamesh"
-              className="transition-colors hover:text-[var(--text-secondary)]"
-            >
-              {project.title}
-            </Link>
-          </div>
 
           <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
             <div>
@@ -246,7 +212,7 @@ export default function PlansPage() {
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Rechercher un plan…"
                 aria-label="Rechercher un plan"
-                className="h-9 w-full rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] pl-9 pr-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent-blue)] focus:outline-none"
+                className="h-9 w-full rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] pl-9 pr-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--interactive)] focus:outline-none"
               />
             </div>
           </div>
@@ -278,7 +244,7 @@ export default function PlansPage() {
                 <button
                   type="button"
                   onClick={handleAddShot}
-                  className="flex min-h-[180px] flex-col items-center justify-center gap-2 rounded-[var(--radius-md)] border border-dashed border-[var(--border-default)] text-sm text-[var(--text-secondary)] transition-colors hover:border-[var(--accent-blue)] hover:text-[var(--text-primary)]"
+                  className="flex min-h-[180px] flex-col items-center justify-center gap-2 rounded-[var(--radius-md)] border border-dashed border-[var(--border-default)] text-sm text-[var(--text-secondary)] transition-colors hover:border-[var(--interactive)] hover:text-[var(--text-primary)]"
                 >
                   <Plus size={18} />
                   Ajouter un plan
@@ -335,7 +301,7 @@ export default function PlansPage() {
           setShotToDelete(null)
         }}
       />
-    </div>
+    </AppShell>
   )
 }
 
@@ -373,7 +339,7 @@ function ShotTable({
               onClick={() => onSelect(shot.id)}
               className={cn(
                 'cursor-pointer border-t border-[var(--border-subtle)] transition-colors hover:bg-[var(--bg-card-hover)]',
-                shot.id === selectedShotId && 'bg-[var(--accent-blue-dim)]'
+                shot.id === selectedShotId && 'bg-[var(--interactive-dim)]'
               )}
             >
               <td className="px-3 py-2 text-[var(--text-primary)]">
@@ -393,7 +359,7 @@ function ShotTable({
                 {getLightingRecipe(shot.lighting)?.name ?? shot.lighting}
               </td>
               <td className="px-3 py-2">
-                <span className={shot.validated ? 'text-green-400' : 'text-[var(--text-muted)]'}>
+                <span className={shot.validated ? 'text-[var(--state-ok)]' : 'text-[var(--text-muted)]'}>
                   {shot.validated ? 'Validé' : 'À valider'}
                 </span>
               </td>
@@ -433,7 +399,7 @@ function ViewToggle({
       className={cn(
         'flex items-center gap-2 rounded-[var(--radius-sm)] px-3 py-1.5 text-sm transition-colors',
         active
-          ? 'bg-[var(--accent-blue-dim)] text-[var(--accent-blue)]'
+          ? 'bg-[var(--interactive-dim)] text-[var(--interactive)]'
           : 'text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)]'
       )}
     >
@@ -459,7 +425,7 @@ function FilterSelect({
       value={value}
       aria-label={label}
       onChange={(event) => onChange(event.target.value)}
-      className="h-9 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 text-sm text-[var(--text-primary)] focus:border-[var(--accent-blue)] focus:outline-none"
+      className="h-9 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 text-sm text-[var(--text-primary)] focus:border-[var(--interactive)] focus:outline-none"
     >
       {options.map((option) => (
         <option key={option.value} value={option.value}>

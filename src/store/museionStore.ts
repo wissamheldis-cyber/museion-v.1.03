@@ -847,6 +847,11 @@ export const useMuseionStore = create<MuseionState>()(
       name: 'museion-store-v1',
       storage: createJSONStorage(() => localStorage),
       version: SCHEMA_VERSION,
+      // localStorage n'existe pas au rendu serveur : réhydrater pendant la
+      // création du store ferait diverger le premier rendu client du HTML
+      // envoyé par le serveur. La réhydratation est déclenchée après montage
+      // par <StoreHydration />.
+      skipHydration: true,
       migrate: (persistedState, version) => {
         let state = persistedState as MuseionState
 

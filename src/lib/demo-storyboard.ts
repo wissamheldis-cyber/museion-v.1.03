@@ -25,7 +25,7 @@ export const DEMO_SEQUENCES: Sequence[] = [
     number: 1,
     title: 'Le roi et le héros',
     description: 'Uruk sous le joug de Gilgamesh, la naissance d’Enkidu, la rencontre.',
-    color: '#3b8ef0',
+    color: '#ececea',
     order: 0,
   },
   {
@@ -34,7 +34,7 @@ export const DEMO_SEQUENCES: Sequence[] = [
     number: 2,
     title: 'L’appel à l’aventure',
     description: 'La décision de partir affronter Humbaba, le refus des anciens, le départ.',
-    color: '#c9a84c',
+    color: '#c6c7c4',
     order: 1,
   },
   {
@@ -43,7 +43,7 @@ export const DEMO_SEQUENCES: Sequence[] = [
     number: 3,
     title: 'L’épreuve de la forêt',
     description: 'La Forêt des Cèdres, le rêve prémonitoire, Humbaba, la transgression.',
-    color: '#3fb27f',
+    color: '#a0a2a0',
     order: 2,
   },
   {
@@ -52,7 +52,7 @@ export const DEMO_SEQUENCES: Sequence[] = [
     number: 4,
     title: 'Le déluge',
     description: 'La colère d’Ishtar, la montée des eaux, la mort d’Enkidu.',
-    color: '#8a6ad6',
+    color: '#7b7d7c',
     order: 3,
   },
   {
@@ -61,7 +61,7 @@ export const DEMO_SEQUENCES: Sequence[] = [
     number: 5,
     title: 'Retour à Uruk',
     description: 'La traversée, Utnapishtim, le retour au pied du mur.',
-    color: '#d8734a',
+    color: '#5a5c5e',
     order: 4,
   },
 ]

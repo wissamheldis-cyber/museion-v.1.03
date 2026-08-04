@@ -143,7 +143,7 @@ export function ClassicView({
 
           <DragOverlay>
             {draggedScene ? (
-              <div className="rounded-[var(--radius-md)] border border-[var(--accent-blue)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-primary)] shadow-2xl">
+              <div className="rounded-[var(--radius-md)] border border-[var(--interactive)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-primary)] shadow-2xl">
                 {String(draggedScene.number).padStart(2, '0')} — {draggedScene.title}
               </div>
             ) : null}
@@ -153,7 +153,7 @@ export function ClassicView({
         <button
           type="button"
           onClick={onAddScene}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-[var(--radius-md)] border border-dashed border-[var(--border-default)] py-5 text-sm text-[var(--text-secondary)] transition-colors hover:border-[var(--accent-blue)] hover:text-[var(--text-primary)]"
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-[var(--radius-md)] border border-dashed border-[var(--border-default)] py-5 text-sm text-[var(--text-secondary)] transition-colors hover:border-[var(--interactive)] hover:text-[var(--text-primary)]"
         >
           <Plus size={15} />
           Ajouter une scène

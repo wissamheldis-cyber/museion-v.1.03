@@ -1,11 +1,10 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
 import Link from 'next/link'
 import { localAuthAdapter } from '@/adapters/auth/LocalAuthAdapter'
 import { useMuseionStore } from '@/store/museionStore'
-import { CinemaSidebar } from '@/components/layout/CinemaSidebar'
+import { AppShell } from '@/components/layout/AppShell'
 import { StatusBadge } from '@/components/ui/Badge'
 import { ProgressBar } from '@/components/ui/ProgressBar'
 import { Button } from '@/components/ui/Button'
@@ -14,15 +13,7 @@ import { FORMAT_LABELS } from '@/lib/utils'
 
 export default function CinemaDashboardPage() {
   const router = useRouter()
-  const { projects, setAuth, setProfile } = useMuseionStore()
-
-  useEffect(() => {
-    const session = localAuthAdapter.getSession()
-    if (!session) { router.replace('/login'); return }
-    setAuth(session)
-    const profile = localAuthAdapter.getProfile()
-    if (profile) setProfile(profile)
-  }, [router, setAuth, setProfile])
+  const { projects} = useMuseionStore()
 
   const session = localAuthAdapter.getSession()
   if (!session) return null
@@ -46,12 +37,11 @@ export default function CinemaDashboardPage() {
   ]
 
   return (
-    <div className="flex h-screen bg-[var(--bg-base)] overflow-hidden">
-      <CinemaSidebar />
+    <AppShell>
 
       <div className="flex-1 overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-[var(--bg-base)]/80 backdrop-blur-xl border-b border-[var(--border-subtle)] px-8 py-5 flex items-center justify-between">
+        <div className="sticky top-0 z-10 bg-[var(--bg-base)] border-b border-[var(--border-subtle)] px-8 py-5 flex items-center justify-between">
           <div>
             <h1 className="text-xl font-semibold text-[var(--text-primary)]">Projets cinéma</h1>
             <p className="text-sm text-[var(--text-secondary)] mt-0.5">
@@ -77,7 +67,7 @@ export default function CinemaDashboardPage() {
               </h2>
               <Link
                 href="/cinema/projects"
-                className="text-xs text-[var(--text-muted)] hover:text-[var(--accent-blue)] transition-colors flex items-center gap-1"
+                className="text-xs text-[var(--text-muted)] hover:text-[var(--interactive)] transition-colors flex items-center gap-1"
               >
                 Voir tout <ChevronRight size={12} />
               </Link>
@@ -95,10 +85,10 @@ export default function CinemaDashboardPage() {
                       className="absolute inset-0 opacity-20"
                       style={{
                         background: project.slug === 'gilgamesh'
-                          ? 'linear-gradient(135deg, #8b4513 0%, #1a1208 100%)'
+                          ? 'linear-gradient(135deg, #2a2b2f 0%, #0d0e11 100%)'
                           : project.slug === 'akhenaton'
-                          ? 'linear-gradient(135deg, #c9a84c 0%, #1a1408 100%)'
-                          : 'linear-gradient(135deg, #3b5ea6 0%, #0a0c18 100%)',
+                          ? 'linear-gradient(135deg, #35363a 0%, #0d0e11 100%)'
+                          : 'linear-gradient(135deg, #202126 0%, #0d0e11 100%)',
                       }}
                     />
                     <Film size={28} className="text-[var(--text-muted)] relative z-10 group-hover:text-[var(--text-secondary)] transition-colors" />
@@ -123,7 +113,7 @@ export default function CinemaDashboardPage() {
                 <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
                   Validations en attente
                 </h2>
-                <button className="text-xs text-[var(--text-muted)] hover:text-[var(--accent-blue)] transition-colors flex items-center gap-1">
+                <button className="text-xs text-[var(--text-muted)] hover:text-[var(--interactive)] transition-colors flex items-center gap-1">
                   Voir tout <ChevronRight size={12} />
                 </button>
               </div>
@@ -133,7 +123,7 @@ export default function CinemaDashboardPage() {
                     key={v.id}
                     className="flex items-center gap-3 p-3 rounded-[var(--radius-md)] bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:border-[var(--border-default)] transition-colors cursor-pointer"
                   >
-                    <AlertCircle size={15} className="text-amber-400 shrink-0" />
+                    <AlertCircle size={15} className="text-[var(--state-warn)] shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-[var(--text-primary)] truncate">{v.title}</p>
                       <p className="text-xs text-[var(--text-muted)]">{v.project} · {v.date}</p>
@@ -177,7 +167,7 @@ export default function CinemaDashboardPage() {
               <div className="space-y-3">
                 {activity.map((a) => (
                   <div key={a.id} className="flex items-start gap-2.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-blue)] mt-1.5 shrink-0" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-[var(--interactive)] mt-1.5 shrink-0" />
                     <div>
                       <p className="text-xs text-[var(--text-primary)]">{a.action}</p>
                       <p className="text-[11px] text-[var(--text-muted)]">{a.project} · {a.date}</p>
@@ -204,6 +194,6 @@ export default function CinemaDashboardPage() {
           </div>
         </div>
       </div>
-    </div>
+    </AppShell>
   )
 }

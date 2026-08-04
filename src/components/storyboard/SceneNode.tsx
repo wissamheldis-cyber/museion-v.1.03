@@ -31,7 +31,7 @@ export function SceneNode({ data }: NodeProps<SceneNodeType>) {
       className={cn(
         'w-[196px] overflow-hidden rounded-[var(--radius-md)] border bg-[var(--bg-card)] transition-colors duration-[var(--transition-fast)]',
         data.isSelected
-          ? 'border-[var(--accent-blue)] ring-1 ring-[var(--accent-blue)]/40'
+          ? 'border-[var(--interactive)] ring-1 ring-[var(--interactive)]/40'
           : 'border-[var(--border-default)]',
         isOver && 'border-[var(--accent-champagne)] ring-2 ring-[var(--accent-champagne)]/40'
       )}
@@ -39,7 +39,7 @@ export function SceneNode({ data }: NodeProps<SceneNodeType>) {
       <Handle
         type="target"
         position={Position.Left}
-        className="!h-2 !w-2 !border-[var(--bg-base)] !bg-[var(--accent-blue)]"
+        className="!h-2 !w-2 !border-[var(--bg-base)] !bg-[var(--text-secondary)]"
       />
 
       <PreviewFrame
@@ -59,7 +59,7 @@ export function SceneNode({ data }: NodeProps<SceneNodeType>) {
       <div className="px-2 py-1.5">
         <div className="flex items-baseline justify-between gap-1">
           <p className="truncate text-[12px] font-medium text-[var(--text-primary)]">{data.title}</p>
-          <span className="shrink-0 text-[10px] tabular-nums text-[var(--text-muted)]">
+          <span className="shrink-0 text-[10px] metric text-[var(--text-muted)]">
             {formatTimecode(data.duration)}
           </span>
         </div>
@@ -74,7 +74,7 @@ export function SceneNode({ data }: NodeProps<SceneNodeType>) {
       <Handle
         type="source"
         position={Position.Right}
-        className="!h-2 !w-2 !border-[var(--bg-base)] !bg-[var(--accent-blue)]"
+        className="!h-2 !w-2 !border-[var(--bg-base)] !bg-[var(--text-secondary)]"
       />
     </div>
   )

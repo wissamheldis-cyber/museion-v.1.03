@@ -20,27 +20,43 @@ Le nom canonique est **Museion**. Ne jamais écrire Museon, Musion, SHOU Control
 - Ne jamais remplacer les références par un dashboard SaaS générique
 
 ## Direction artistique
-- Dark mode premium : fond noir profond et bleu-noir (#0a0c10, #0d0f14)
-- Blanc cassé pour les textes (#e8e8e6)
-- Gris froid pour les textes secondaires (#8a8f9e)
-- Bleu froid pour les actions principales (#3b8ef0)
-- Accent champagne discret (#c9a84c)
-- Navigation de premier niveau en Liquid Glass (backdrop-blur + transparence)
-- Zones d'écriture opaques et lisibles
+
+Source de vérité : `references/ref.png`, `ref2.png`, `ref3.png`, `ref4.png`.
+Ces quatre images remplacent la direction artistique bleutée d'origine.
+
+- **Monochrome.** Le chrome de l'interface est blanc, gris et noir. Aucune couleur d'accent
+  décorative.
+- **La couleur est réservée à la donnée**, jamais à la décoration : vert pour un état validé
+  ou « On Track », champagne pour un état temporaire ou un avertissement, rouge pour le
+  destructif, et les couleurs fonctionnelles d'un outil (frustums caméra, tracés).
+- Fond noir neutre et profond, sans dominante bleue (#08090b, #0d0e11, #111216)
+- Blanc cassé pour les textes (#ececea), gris pour le secondaire (#8e9099), gris sourd pour
+  le tertiaire (#5a5c66)
+- **Actions principales : fond sombre + bordure claire**, jamais un aplat de couleur
+- **Panneaux plats et opaques**, séparés par des filets de 1 px à 5–9 % de blanc.
+  Pas de dégradés de fond entre zones voisines.
+- **Le flou est réservé aux surcouches** (modales, tiroirs). La navigation n'est pas en verre.
+- Typographie : labels de section en capitales très espacées (0.14em), chiffres clés en
+  grande taille et graisse légère, chiffres tabulaires
+- Wordmark MUSEION en typographie espacée, pas en image
+- Densité d'outil professionnel : dense et lisible, jamais tassé
+- L'image est le héros : vignettes larges, traitées en valeurs sombres
 - Transitions 120–220ms
 - prefers-reduced-motion respecté
 - Contraste accessible (WCAG AA minimum)
 
 ## Ce qu'il ne faut pas faire
-- Recouvrir tous les composants de verre
+- Réintroduire une couleur d'accent dans le chrome (le bleu #3b8ef0 est retiré)
+- Recouvrir les composants de verre
 - Utiliser des néons gratuits
 - Rendre les textes minuscules
 - Créer une interface surchargée
-- Inventer une nouvelle direction artistique
+- Inventer une direction artistique en dehors de `references/ref1-4`
 - Cyberpunk / glow excessif
 - Dashboard SaaS générique
 - Pages placeholder (afficher "En construction dans le prochain sprint" proprement)
 - Déclarer une fonction opérationnelle sans test réel
+- Simuler une fonction absente : une capacité non construite s'affiche comme non construite
 
 ## Architecture
 - L'interface doit être plus simple que l'architecture sous-jacente

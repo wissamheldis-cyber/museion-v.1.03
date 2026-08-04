@@ -51,7 +51,7 @@ export function ShotCard({
       className={cn(
         'flex flex-col rounded-[var(--radius-md)] border bg-[var(--bg-card)] transition-colors duration-[var(--transition-fast)]',
         selected
-          ? 'border-[var(--accent-blue)] ring-1 ring-[var(--accent-blue)]/40'
+          ? 'border-[var(--interactive)] ring-1 ring-[var(--interactive)]/40'
           : 'border-[var(--border-subtle)] hover:border-[var(--border-default)]'
       )}
     >
@@ -79,7 +79,7 @@ export function ShotCard({
           className={cn(
             'shrink-0 rounded-full p-0.5 transition-colors',
             shot.validated
-              ? 'text-green-400 hover:text-green-300'
+              ? 'text-[var(--state-ok)] hover:text-green-300'
               : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
           )}
         >
@@ -183,7 +183,7 @@ function MenuItem({
       className={cn(
         'flex w-full items-center gap-2 px-3 py-2 text-left text-xs transition-colors',
         destructive
-          ? 'text-red-400 hover:bg-red-500/10'
+          ? 'text-[var(--state-danger)] hover:bg-[var(--state-danger-dim)]'
           : 'text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)]'
       )}
     >

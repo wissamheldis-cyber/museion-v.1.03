@@ -10,7 +10,7 @@ export function SaveIndicator() {
 
   return (
     <span className="save-indicator inline-flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
-      <Check size={12} className="text-green-400" />
+      <Check size={12} className="text-[var(--state-ok)]" />
       Sauvegardé localement
     </span>
   )

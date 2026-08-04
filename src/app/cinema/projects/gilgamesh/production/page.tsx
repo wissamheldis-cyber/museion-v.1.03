@@ -1,26 +1,18 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { localAuthAdapter } from '@/adapters/auth/LocalAuthAdapter'
-import { useMuseionStore } from '@/store/museionStore'
-import { CinemaSidebar } from '@/components/layout/CinemaSidebar'
+import { AppShell } from '@/components/layout/AppShell'
 import { SprintPlaceholder } from '@/components/layout/SprintPlaceholder'
 
 export default function ProductionPage() {
-  const router = useRouter()
-  const { setAuth, setProfile } = useMuseionStore()
-  useEffect(() => {
-    const session = localAuthAdapter.getSession()
-    if (!session) { router.replace('/login'); return }
-    setAuth(session)
-    const profile = localAuthAdapter.getProfile()
-    if (profile) setProfile(profile)
-  }, [router, setAuth, setProfile])
   return (
-    <div className="flex h-screen bg-[var(--bg-base)] overflow-hidden">
-      <CinemaSidebar projectSlug="gilgamesh" />
-      <SprintPlaceholder title="Production visuelle" sprint={2} projectSlug="gilgamesh" />
-    </div>
+    <AppShell projectSlug="gilgamesh">
+      <SprintPlaceholder
+        title="Production visuelle"
+        sprint={3}
+        projectSlug="gilgamesh"
+        description="File de génération image et vidéo à partir des plans validés : suivi des travaux, reprises, comparaison des versions."
+        constraint="Aucun moteur de génération n’est branché. Le seul fournisseur actif reste le compositeur SVG local, et il ne quitte pas le poste."
+      />
+    </AppShell>
   )
 }

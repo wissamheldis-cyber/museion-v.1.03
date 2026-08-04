@@ -53,7 +53,7 @@ export function CharactersTab({ project }: CharactersTabProps) {
 
       {/* Formulaire ajout */}
       {addingNew && (
-        <div className="mb-4 p-4 rounded-[var(--radius-lg)] bg-[var(--bg-card)] border border-[var(--accent-blue)]/30">
+        <div className="mb-4 p-4 rounded-[var(--radius-lg)] bg-[var(--bg-card)] border border-[var(--interactive)]/30">
           <div className="flex gap-3 mb-3">
             <Input
               id="new-char-name"
@@ -173,7 +173,7 @@ function CharacterCard({
           {/* Relations */}
           {character.relations.length > 0 && (
             <div>
-              <p className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider mb-2">
+              <p className="label-caps mb-2">
                 Relations
               </p>
               <div className="space-y-2">

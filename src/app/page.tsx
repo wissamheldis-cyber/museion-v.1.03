@@ -53,8 +53,8 @@ export default function HomePage() {
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-            <div className="w-7 h-7 rounded-full bg-[var(--accent-blue)]/20 flex items-center justify-center">
-              <User size={14} className="text-[var(--accent-blue)]" />
+            <div className="w-7 h-7 rounded-full bg-[var(--interactive)]/20 flex items-center justify-center">
+              <User size={14} className="text-[var(--interactive)]" />
             </div>
             <span>{studioProfile?.displayName ?? 'Administrateur'}</span>
           </div>
@@ -86,10 +86,10 @@ export default function HomePage() {
             <div className={cn(
               'relative rounded-[var(--radius-xl)] border border-[var(--border-default)] bg-[var(--bg-card)] p-8 flex flex-col gap-4',
               'transition-all duration-[var(--transition-base)]',
-              'hover:border-[var(--accent-blue)]/40 hover:bg-[var(--bg-card-hover)] hover:scale-[1.02]'
+              'hover:border-[var(--interactive)]/40 hover:bg-[var(--bg-card-hover)] hover:scale-[1.02]'
             )}>
-              <div className="w-12 h-12 rounded-[var(--radius-md)] bg-[var(--accent-blue-dim)] flex items-center justify-center">
-                <Clapperboard size={22} className="text-[var(--accent-blue)]" />
+              <div className="w-12 h-12 rounded-[var(--radius-md)] bg-[var(--interactive-dim)] flex items-center justify-center">
+                <Clapperboard size={22} className="text-[var(--interactive)]" />
               </div>
               <div>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-1.5">
@@ -99,7 +99,7 @@ export default function HomePage() {
                   Films, documentaires et récits ambitieux.
                 </p>
               </div>
-              <span className="mt-auto text-xs font-medium text-[var(--accent-blue)] flex items-center gap-1.5 transition-all">
+              <span className="mt-auto text-xs font-medium text-[var(--interactive)] flex items-center gap-1.5 transition-all">
                 Ouvrir →
               </span>
             </div>

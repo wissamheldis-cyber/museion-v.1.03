@@ -1,34 +1,69 @@
 import { cn } from '@/lib/utils'
 
+/**
+ * Direction artistique ref1-4 : le chrome est monochrome.
+ * `neutral` et `ghost` ne portent aucune couleur ; `ok`, `warn` et `danger`
+ * sont réservés à un état réel de la donnée.
+ */
 interface BadgeProps {
   children: React.ReactNode
-  variant?: 'default' | 'blue' | 'green' | 'amber' | 'red' | 'champagne' | 'ghost'
+  variant?: 'neutral' | 'selected' | 'ok' | 'warn' | 'danger' | 'ghost'
   size?: 'sm' | 'md'
   className?: string
 }
 
-export function Badge({ children, variant = 'default', size = 'sm', className }: BadgeProps) {
+export function Badge({ children, variant = 'neutral', size = 'sm', className }: BadgeProps) {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 font-medium rounded-full border',
+        'inline-flex items-center gap-1.5 font-medium rounded-full border',
         {
-          'text-xs px-2 py-0.5': size === 'sm',
+          'text-[11px] px-2 py-0.5': size === 'sm',
           'text-xs px-2.5 py-1': size === 'md',
         },
         {
-          'bg-[var(--bg-elevated)] text-[var(--text-secondary)] border-[var(--border-default)]': variant === 'default',
-          'bg-[var(--accent-blue-dim)] text-[var(--accent-blue)] border-[var(--accent-blue)]/20': variant === 'blue',
-          'bg-green-500/10 text-green-400 border-green-500/20': variant === 'green',
-          'bg-amber-500/10 text-amber-400 border-amber-500/20': variant === 'amber',
-          'bg-red-500/10 text-red-400 border-red-500/20': variant === 'red',
-          'bg-[var(--accent-champagne-dim)] text-[var(--accent-champagne)] border-[var(--accent-champagne)]/20': variant === 'champagne',
-          'bg-transparent text-[var(--text-muted)] border-[var(--border-subtle)]': variant === 'ghost',
+          'bg-[var(--bg-elevated)] text-[var(--text-secondary)] border-[var(--border-default)]':
+            variant === 'neutral',
+          'bg-[var(--interactive-dim)] text-[var(--text-primary)] border-[var(--interactive-border)]':
+            variant === 'selected',
+          'bg-[var(--state-ok-dim)] text-[var(--state-ok)] border-[var(--state-ok)]/25':
+            variant === 'ok',
+          'bg-[var(--state-warn-dim)] text-[var(--state-warn)] border-[var(--state-warn)]/25':
+            variant === 'warn',
+          'bg-[var(--state-danger-dim)] text-[var(--state-danger)] border-[var(--state-danger)]/25':
+            variant === 'danger',
+          'bg-transparent text-[var(--text-muted)] border-[var(--border-subtle)]':
+            variant === 'ghost',
         },
         className
       )}
     >
       {children}
+    </span>
+  )
+}
+
+/** Pastille d'état, sans cartouche — usage « On Track », « Approved » des références. */
+export function StatusDot({
+  state,
+  label,
+  className,
+}: {
+  state: 'ok' | 'warn' | 'danger' | 'idle'
+  label: string
+  className?: string
+}) {
+  const color = {
+    ok: 'bg-[var(--state-ok)]',
+    warn: 'bg-[var(--state-warn)]',
+    danger: 'bg-[var(--state-danger)]',
+    idle: 'bg-[var(--text-muted)]',
+  }[state]
+
+  return (
+    <span className={cn('inline-flex items-center gap-1.5 text-xs text-[var(--text-secondary)]', className)}>
+      <span className={cn('h-1.5 w-1.5 rounded-full', color)} />
+      {label}
     </span>
   )
 }
@@ -41,9 +76,13 @@ interface TraceBadgeProps {
 
 export function TraceBadge({ status, className }: TraceBadgeProps) {
   const config = {
-    decision: { label: 'Décision', variant: 'green' as const, dot: 'bg-green-400' },
-    hypothesis: { label: 'Hypothèse', variant: 'amber' as const, dot: 'bg-amber-400' },
-    'open-question': { label: 'Question ouverte', variant: 'blue' as const, dot: 'bg-blue-400' },
+    decision: { label: 'Décision', variant: 'ok' as const, dot: 'bg-[var(--state-ok)]' },
+    hypothesis: { label: 'Hypothèse', variant: 'warn' as const, dot: 'bg-[var(--state-warn)]' },
+    'open-question': {
+      label: 'Question ouverte',
+      variant: 'neutral' as const,
+      dot: 'bg-[var(--text-secondary)]',
+    },
   }
   const { label, variant, dot } = config[status]
 
@@ -63,16 +102,16 @@ interface StatusBadgeProps {
 
 const STATUS_CONFIG: Record<string, { label: string; variant: BadgeProps['variant'] }> = {
   draft: { label: 'Brouillon', variant: 'ghost' },
-  concept: { label: 'Concept', variant: 'default' },
-  development: { label: 'En développement', variant: 'blue' },
-  'pre-production': { label: 'Pré-production', variant: 'champagne' },
-  production: { label: 'Production', variant: 'green' },
-  'post-production': { label: 'Post-production', variant: 'amber' },
+  concept: { label: 'Concept', variant: 'neutral' },
+  development: { label: 'En développement', variant: 'selected' },
+  'pre-production': { label: 'Pré-production', variant: 'neutral' },
+  production: { label: 'Production', variant: 'ok' },
+  'post-production': { label: 'Post-production', variant: 'warn' },
   archived: { label: 'Archivé', variant: 'ghost' },
 }
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
-  const config = STATUS_CONFIG[status] ?? { label: status, variant: 'default' as const }
+  const config = STATUS_CONFIG[status] ?? { label: status, variant: 'neutral' as const }
   return (
     <Badge variant={config.variant} className={className}>
       {config.label}

@@ -53,7 +53,7 @@ export function SynopsisTab({ project }: SynopsisTabProps) {
       />
 
       <div className="border-t border-[var(--border-subtle)] pt-5">
-        <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-widest mb-4">Structure</p>
+        <p className="label-caps mb-4">Structure</p>
         <div className="space-y-4">
           <Textarea
             id="synopsis-beginning"

@@ -42,7 +42,7 @@ export function VisionTab({ project }: VisionTabProps) {
       </div>
 
       {project.traces.filter((t) => t.status === 'decision').length > 0 && (
-        <div className="flex items-start gap-2.5 p-3 rounded-[var(--radius-md)] bg-green-500/5 border border-green-500/15">
+        <div className="flex items-start gap-2.5 p-3 rounded-[var(--radius-md)] bg-[var(--state-ok)]/5 border border-green-500/15">
           <TraceBadge status="decision" className="shrink-0 mt-0.5" />
           <p className="text-xs text-[var(--text-secondary)]">
             {project.traces.find((t) => t.status === 'decision')?.content}

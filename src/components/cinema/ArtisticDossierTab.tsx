@@ -70,7 +70,7 @@ export function ArtisticDossierTab({ project }: ArtisticDossierTabProps) {
 
       {/* Import images */}
       <div>
-        <p className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider mb-3">
+        <p className="label-caps mb-3">
           Références visuelles
         </p>
         <div className="border-2 border-dashed border-[var(--border-subtle)] rounded-[var(--radius-lg)] p-8 text-center">
