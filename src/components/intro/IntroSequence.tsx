@@ -81,6 +81,15 @@ export function IntroSequence({ onRevealStart, onComplete }: IntroSequenceProps)
     audio?.addEventListener('ended', finishIntro)
     const failsafeTimer = window.setTimeout(finishIntro, AUDIO_FAILSAFE_MS)
 
+    // Certains navigateurs bloquent la lecture automatique avec son tant
+    // qu'aucune interaction n'a eu lieu sur la page : on retente la lecture
+    // (jamais de pause) dès le premier geste, sans exposer de contrôle.
+    const unlockAudio = () => {
+      audio?.play().catch(() => {})
+    }
+    window.addEventListener('pointerdown', unlockAudio, { once: true })
+    window.addEventListener('keydown', unlockAudio, { once: true })
+
     const tick = (now: number) => {
       if (startRef.current === null) startRef.current = now
       const elapsed = now - startRef.current
@@ -111,6 +120,8 @@ export function IntroSequence({ onRevealStart, onComplete }: IntroSequenceProps)
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
       window.clearTimeout(failsafeTimer)
       audio?.removeEventListener('ended', finishIntro)
+      window.removeEventListener('pointerdown', unlockAudio)
+      window.removeEventListener('keydown', unlockAudio)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
