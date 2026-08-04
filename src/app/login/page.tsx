@@ -76,9 +76,9 @@ function LoginForm() {
 
       <div className="relative w-full max-w-sm mx-auto px-6">
         {/* Logo */}
-        <div className="flex flex-col items-center mb-10">
+        <div className="flex flex-col items-center mb-16">
           <div
-            className="w-[30rem] h-[30rem] relative"
+            className="relative w-[44rem] max-w-[90vw] aspect-[1771/279]"
             style={{
               opacity: logoRevealed ? 1 : 0,
               transform: logoRevealed ? 'scale(1)' : 'scale(0.85)',
@@ -89,7 +89,7 @@ function LoginForm() {
               src="/brand/logo-login.png"
               alt="Museion"
               fill
-              sizes="480px"
+              sizes="704px"
               className="object-contain"
               priority
             />
