@@ -49,20 +49,26 @@ export function AppShell({ children, projectSlug, tabs, activeTab, onTabChange }
 
   return (
     <DemoTourProvider>
-      <div className="flex h-screen flex-col overflow-hidden bg-[var(--bg-base)]">
-        <TopBar
-          projectSlug={projectSlug}
-          tabs={tabs}
-          activeTab={activeTab}
-          onTabChange={onTabChange}
-        />
-        <div className="flex min-h-0 flex-1">
-          <CinemaSidebar
+      <div className="museion-global-wrapper relative flex h-screen w-screen items-center justify-center overflow-hidden bg-[#050608] p-2.5 sm:p-3 md:p-4">
+        {/* Fond global séparé — personnalisable */}
+        <div className="museion-global-bg pointer-events-none absolute inset-0 z-0" />
+
+        {/* Shell principal centré ("Fenêtre Dashboard Cockpit") */}
+        <div className="museion-cockpit-shell relative z-10 flex h-full w-full max-w-[1760px] flex-col overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--bg-base)] shadow-[0_32px_80px_-16px_rgba(0,0,0,0.92)] ring-1 ring-white/[0.04]">
+          <TopBar
             projectSlug={projectSlug}
-            collapsed={collapsed}
-            onToggleCollapsed={() => setCollapsed((value) => !value)}
+            tabs={tabs}
+            activeTab={activeTab}
+            onTabChange={onTabChange}
           />
-          <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+          <div className="flex min-h-0 flex-1">
+            <CinemaSidebar
+              projectSlug={projectSlug}
+              collapsed={collapsed}
+              onToggleCollapsed={() => setCollapsed((value) => !value)}
+            />
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden">{children}</div>
+          </div>
         </div>
       </div>
       <DemoTourController />

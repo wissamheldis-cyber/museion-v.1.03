@@ -24,6 +24,18 @@ import type {
   StoryboardEdge,
   StoryboardScene,
 } from '@/lib/types-storyboard'
+import type {
+  WritingMission,
+  WritingMessage,
+  WritingVariant,
+  ProductionJob,
+  ReviewComment,
+  ReviewChecklist,
+  DeliverablePackage,
+  AssetCollection,
+  WritingTarget,
+  WritingClassification
+} from '@/lib/types-sprint4'
 import { DEMO_PROJECTS } from '@/lib/demo-data'
 import {
   DEMO_ASSETS,
@@ -53,7 +65,7 @@ import { generateId } from '@/lib/utils'
 // Schema versionné
 // ============================================================
 
-const SCHEMA_VERSION = 3
+const SCHEMA_VERSION = 4
 
 const DECIDED_BY = 'Administrateur'
 
@@ -185,6 +197,46 @@ interface MuseionState {
   attachAssetToScene: (assetId: string, sceneId: string) => void
   attachAssetToShot: (assetId: string, shotId: string) => void
   detachAssetFromScene: (sceneId: string) => void
+
+  // ---- Sprint 4 ----
+  writingMissions: WritingMission[]
+  writingMessages: WritingMessage[]
+  writingVariants: WritingVariant[]
+  productionJobs: ProductionJob[]
+  reviewComments: ReviewComment[]
+  reviewChecklists: ReviewChecklist[]
+  deliverablePackages: DeliverablePackage[]
+  assetCollections: AssetCollection[]
+
+  addWritingMission: (projectId: string, title: string, target: WritingTarget, context: string) => WritingMission
+  addWritingMessage: (missionId: string, role: 'user' | 'assistant', content: string, classification?: WritingClassification) => WritingMessage
+  addWritingVariant: (missionId: string, label: string, content: string, target: WritingTarget) => WritingVariant
+  selectWritingVariant: (variantId: string) => void
+  removeWritingMission: (missionId: string) => void
+
+  addProductionJob: (job: Omit<ProductionJob, 'id' | 'createdAt' | 'updatedAt'>) => ProductionJob
+  updateProductionJob: (jobId: string, patch: Partial<ProductionJob>) => void
+  startProductionJob: (jobId: string) => void
+  completeProductionJob: (jobId: string, resultAssetId: string) => void
+  approveProductionJob: (jobId: string) => void
+  failProductionJob: (jobId: string, error: string) => void
+  cancelProductionJob: (jobId: string) => void
+  duplicateProductionJob: (jobId: string) => ProductionJob | undefined
+  retryProductionJob: (jobId: string) => ProductionJob | undefined
+
+  addReviewComment: (projectId: string, assetId: string, content: string) => ReviewComment
+  removeReviewComment: (commentId: string) => void
+  addReviewChecklist: (projectId: string, assetId: string, label: string) => ReviewChecklist
+  toggleReviewChecklist: (checklistId: string) => void
+
+  createDeliverablePackage: (projectId: string, title: string) => DeliverablePackage
+  updateDeliverableSection: (packageId: string, sectionId: string, included: boolean) => void
+  markDeliverableExported: (packageId: string) => void
+
+  addAssetCollection: (projectId: string, name: string) => AssetCollection
+  addAssetToCollection: (collectionId: string, assetId: string) => void
+  removeAssetFromCollection: (collectionId: string, assetId: string) => void
+  removeAssetCollection: (collectionId: string) => void
 }
 
 // ============================================================
@@ -734,7 +786,17 @@ export const useMuseionStore = create<MuseionState>()(
       selectedSceneId: DEMO_SCENES_WITH_ASSETS[0]?.id ?? null,
       selectedShotId: DEMO_SHOTS[0]?.id ?? null,
 
-      // ---- Séquences ----
+      // ---- Sprint 4 State ----
+      writingMissions: [],
+      writingMessages: [],
+      writingVariants: [],
+      productionJobs: [],
+      reviewComments: [],
+      reviewChecklists: [],
+      deliverablePackages: [],
+      assetCollections: [],
+
+      // ---- Auth ----
 
       addSequence: (projectId, patch) => {
         const siblings = get().sequences.filter((q) => q.projectId === projectId)
@@ -1175,6 +1237,178 @@ export const useMuseionStore = create<MuseionState>()(
         }))
         get().triggerSaveIndicator()
       },
+
+      // ---- Sprint 4 Actions ----
+
+      addWritingMission: (projectId, title, target, context) => {
+        const mission: WritingMission = { id: generateId(), projectId, title, target, context, createdAt: new Date().toISOString() }
+        set((state) => ({ writingMissions: [...state.writingMissions, mission] }))
+        get().triggerSaveIndicator()
+        return mission
+      },
+      addWritingMessage: (missionId, role, content, classification) => {
+        const message: WritingMessage = { id: generateId(), missionId, role, content, classification, createdAt: new Date().toISOString() }
+        set((state) => ({ writingMessages: [...state.writingMessages, message] }))
+        get().triggerSaveIndicator()
+        return message
+      },
+      addWritingVariant: (missionId, label, content, target) => {
+        const variant: WritingVariant = { id: generateId(), missionId, label, content, target, selected: false, createdAt: new Date().toISOString() }
+        set((state) => ({ writingVariants: [...state.writingVariants, variant] }))
+        get().triggerSaveIndicator()
+        return variant
+      },
+      selectWritingVariant: (variantId) => {
+        set((state) => {
+          const variant = state.writingVariants.find(v => v.id === variantId)
+          if (!variant) return state
+          return {
+            writingVariants: state.writingVariants.map(v => 
+              v.missionId === variant.missionId 
+                ? { ...v, selected: v.id === variantId } 
+                : v
+            )
+          }
+        })
+        get().triggerSaveIndicator()
+      },
+      removeWritingMission: (missionId) => {
+        set((state) => ({
+          writingMissions: state.writingMissions.filter(m => m.id !== missionId),
+          writingMessages: state.writingMessages.filter(m => m.missionId !== missionId),
+          writingVariants: state.writingVariants.filter(v => v.missionId !== missionId)
+        }))
+        get().triggerSaveIndicator()
+      },
+
+      addProductionJob: (job) => {
+        const now = new Date().toISOString()
+        const newJob: ProductionJob = { ...job, id: generateId(), createdAt: now, updatedAt: now }
+        set((state) => ({ productionJobs: [...state.productionJobs, newJob] }))
+        get().triggerSaveIndicator()
+        return newJob
+      },
+      updateProductionJob: (jobId, patch) => {
+        const now = new Date().toISOString()
+        set((state) => ({
+          productionJobs: state.productionJobs.map((j) => (j.id === jobId ? { ...j, ...patch, updatedAt: now } : j)),
+        }))
+        get().triggerSaveIndicator()
+      },
+      startProductionJob: (jobId) => {
+        const now = new Date().toISOString()
+        set((state) => ({
+          productionJobs: state.productionJobs.map((j) => (j.id === jobId ? { ...j, status: 'running', startedAt: now, updatedAt: now } : j)),
+        }))
+        get().triggerSaveIndicator()
+      },
+      completeProductionJob: (jobId, resultAssetId) => {
+        const now = new Date().toISOString()
+        set((state) => ({
+          productionJobs: state.productionJobs.map((j) => (j.id === jobId ? { ...j, status: 'review_required', resultAssetId, completedAt: now, updatedAt: now } : j)),
+        }))
+        get().triggerSaveIndicator()
+      },
+      approveProductionJob: (jobId) => {
+        const now = new Date().toISOString()
+        set((state) => ({
+          productionJobs: state.productionJobs.map((j) => (j.id === jobId ? { ...j, status: 'approved', updatedAt: now } : j)),
+        }))
+        get().triggerSaveIndicator()
+      },
+      failProductionJob: (jobId, error) => {
+        const now = new Date().toISOString()
+        set((state) => ({
+          productionJobs: state.productionJobs.map((j) => (j.id === jobId ? { ...j, status: 'failed', error, updatedAt: now } : j)),
+        }))
+        get().triggerSaveIndicator()
+      },
+      cancelProductionJob: (jobId) => {
+        const now = new Date().toISOString()
+        set((state) => ({
+          productionJobs: state.productionJobs.map((j) => (j.id === jobId ? { ...j, status: 'cancelled', updatedAt: now } : j)),
+        }))
+        get().triggerSaveIndicator()
+      },
+      duplicateProductionJob: (jobId) => {
+        const state = get()
+        const job = state.productionJobs.find(j => j.id === jobId)
+        if (!job) return undefined
+        const { id: _id, createdAt: _c, updatedAt: _u, startedAt: _s, completedAt: _ca, resultAssetId: _ra, error: _e, ...rest } = job
+        return get().addProductionJob({ ...rest, status: 'draft' })
+      },
+      retryProductionJob: (jobId) => {
+        const state = get()
+        const job = state.productionJobs.find(j => j.id === jobId)
+        if (!job) return undefined
+        const { id: _id, createdAt: _c, updatedAt: _u, startedAt: _s, completedAt: _ca, resultAssetId: _ra, error: _e, ...rest } = job
+        return get().addProductionJob({ ...rest, status: 'queued' })
+      },
+
+      addReviewComment: (projectId, assetId, content) => {
+        const comment: ReviewComment = { id: generateId(), projectId, assetId, content, author: 'User', createdAt: new Date().toISOString() }
+        set((state) => ({ reviewComments: [...state.reviewComments, comment] }))
+        get().triggerSaveIndicator()
+        return comment
+      },
+      removeReviewComment: (commentId) => {
+        set((state) => ({ reviewComments: state.reviewComments.filter(c => c.id !== commentId) }))
+        get().triggerSaveIndicator()
+      },
+      addReviewChecklist: (projectId, assetId, label) => {
+        const checklist: ReviewChecklist = { id: generateId(), projectId, assetId, label, checked: false }
+        set((state) => ({ reviewChecklists: [...state.reviewChecklists, checklist] }))
+        get().triggerSaveIndicator()
+        return checklist
+      },
+      toggleReviewChecklist: (checklistId) => {
+        set((state) => ({
+          reviewChecklists: state.reviewChecklists.map((c) => (c.id === checklistId ? { ...c, checked: !c.checked } : c)),
+        }))
+        get().triggerSaveIndicator()
+      },
+
+      createDeliverablePackage: (projectId, title) => {
+        const pack: DeliverablePackage = { id: generateId(), projectId, title, sections: [], createdAt: new Date().toISOString() }
+        set((state) => ({ deliverablePackages: [...state.deliverablePackages, pack] }))
+        get().triggerSaveIndicator()
+        return pack
+      },
+      updateDeliverableSection: (packageId, sectionId, included) => {
+        set((state) => ({
+          deliverablePackages: state.deliverablePackages.map((p) => (p.id === packageId ? { ...p, sections: p.sections.map(s => s.id === sectionId ? { ...s, included } : s) } : p)),
+        }))
+        get().triggerSaveIndicator()
+      },
+      markDeliverableExported: (packageId) => {
+        set((state) => ({
+          deliverablePackages: state.deliverablePackages.map((p) => (p.id === packageId ? { ...p, exportedAt: new Date().toISOString() } : p)),
+        }))
+        get().triggerSaveIndicator()
+      },
+
+      addAssetCollection: (projectId, name) => {
+        const collection: AssetCollection = { id: generateId(), projectId, name, assetIds: [], createdAt: new Date().toISOString() }
+        set((state) => ({ assetCollections: [...state.assetCollections, collection] }))
+        get().triggerSaveIndicator()
+        return collection
+      },
+      addAssetToCollection: (collectionId, assetId) => {
+        set((state) => ({
+          assetCollections: state.assetCollections.map((c) => (c.id === collectionId && !c.assetIds.includes(assetId) ? { ...c, assetIds: [...c.assetIds, assetId] } : c)),
+        }))
+        get().triggerSaveIndicator()
+      },
+      removeAssetFromCollection: (collectionId, assetId) => {
+        set((state) => ({
+          assetCollections: state.assetCollections.map((c) => (c.id === collectionId ? { ...c, assetIds: c.assetIds.filter(id => id !== assetId) } : c)),
+        }))
+        get().triggerSaveIndicator()
+      },
+      removeAssetCollection: (collectionId) => {
+        set((state) => ({ assetCollections: state.assetCollections.filter(c => c.id !== collectionId) }))
+        get().triggerSaveIndicator()
+      }
     }),
     {
       name: 'museion-store-v1',
@@ -1224,6 +1458,22 @@ export const useMuseionStore = create<MuseionState>()(
             jobs: state.jobs ?? [],
             demoIntroDismissed: state.demoIntroDismissed ?? false,
             tour: state.tour ?? EMPTY_TOUR,
+          }
+        }
+
+        // v3 → v4 : Sprint 4 - Writing, Production Jobs, Review, Deliverables, Collections
+        if (version < 4) {
+          state = {
+            ...state,
+            schemaVersion: 4,
+            writingMissions: state.writingMissions ?? [],
+            writingMessages: state.writingMessages ?? [],
+            writingVariants: state.writingVariants ?? [],
+            productionJobs: state.productionJobs ?? [],
+            reviewComments: state.reviewComments ?? [],
+            reviewChecklists: state.reviewChecklists ?? [],
+            deliverablePackages: state.deliverablePackages ?? [],
+            assetCollections: state.assetCollections ?? [],
           }
         }
 

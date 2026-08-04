@@ -256,3 +256,28 @@ body {
 .demo-reveal {
   animation: tour-rise-in var(--transition-slow) ease-out both;
 }
+
+/* ============================================================
+   MUSEION — Fond global & Cockpit Dashboard Centré
+   ============================================================ */
+
+/* Fond global : noir profond avec halos lumineux cinématographiques diffuses.
+   Séparé de la structure HTML pour pouvoir remplacer le fond par une texture
+   ou une image personnalisée sans altérer l'application. */
+.museion-global-bg {
+  background-color: #050608;
+  background-image:
+    radial-gradient(ellipse 75% 75% at 50% 50%, rgba(201, 168, 76, 0.065) 0%, rgba(255, 255, 255, 0.025) 35%, rgba(5, 6, 8, 0.92) 75%, #050608 100%),
+    radial-gradient(circle 900px at 50% 50%, rgba(255, 255, 255, 0.015) 0%, transparent 60%);
+}
+
+/* Shell cockpit principal : fenêtre de l'application centrée */
+.museion-cockpit-shell {
+  background-color: var(--bg-base);
+  border: 1px solid var(--border-default);
+  border-radius: 16px;
+  box-shadow:
+    0 32px 80px -16px rgba(0, 0, 0, 0.92),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+}
+
