@@ -153,7 +153,7 @@ export function IntroSequence({ onRevealStart, onComplete }: IntroSequenceProps)
         <img
           src={LOGO_SRC}
           alt="Museion"
-          className="w-[48rem] max-w-[92vw]"
+          className="w-96 max-w-[92vw]"
           style={{ aspectRatio: '1771 / 279' }}
           draggable={false}
         />

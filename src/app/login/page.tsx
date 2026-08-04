@@ -76,12 +76,14 @@ function LoginForm() {
       <div className="relative w-full max-w-sm mx-auto px-6">
         {/* Logo */}
         <div className="flex flex-col items-center mb-10">
-          <div className="w-96 h-96 relative">
+          <div
+            className="w-[36rem] h-[36rem] relative transition-all duration-300 ease-out drop-shadow-[0_4px_16px_rgba(0,0,0,0.35)] hover:scale-110 hover:drop-shadow-[0_0_28px_rgba(255,255,255,0.45)]"
+          >
             <Image
               src="/brand/logo-login.png"
               alt="Museion"
               fill
-              sizes="384px"
+              sizes="576px"
               className="object-contain"
               priority
             />
