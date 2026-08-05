@@ -106,6 +106,7 @@ interface MuseionState {
   updateProject: (id: string, patch: Partial<Project>) => void
   toggleFavorite: (id: string) => void
   archiveProject: (id: string) => void
+  deleteProject: (id: string) => Promise<{ ok: true } | { ok: false; message: string }>
   getProject: (slug: string) => Project | undefined
 
   // Logline
@@ -650,6 +651,60 @@ export const useMuseionStore = create<MuseionState>()(
         if (get().currentStudioId && isArchived !== undefined) {
           projectsRemote.updateProjectCoreRemote(id, { isArchived }).catch((err) => get().reportSyncError('archiveProject', err))
         }
+      },
+
+      deleteProject: async (id) => {
+        const studioId = get().currentStudioId
+        if (!studioId) {
+          return { ok: false, message: "Aucun studio actif pour ce compte. Le projet n'a pas été supprimé." }
+        }
+
+        try {
+          await projectsRemote.deleteProjectRemote(id)
+        } catch (err) {
+          console.error('[deleteProject] Échec de la suppression côté Supabase :', err)
+          return {
+            ok: false,
+            message: 'La suppression du projet a échoué côté serveur. Rien n’a été supprimé — réessayez.',
+          }
+        }
+
+        // La suppression Supabase cascade déjà sur toutes les tables liées
+        // (canon, storyboard, écriture, revue, livrables...) : ici on ne
+        // fait que refléter localement ce qui vient d'être supprimé côté
+        // serveur, pour que l'UI se mette à jour sans recharger.
+        const missionIds = new Set(
+          get().writingMissions.filter((m) => m.projectId === id).map((m) => m.id)
+        )
+        const sceneIds = new Set(get().scenes.filter((s) => s.projectId === id).map((s) => s.id))
+        const assetIds = new Set(get().assets.filter((a) => a.projectId === id).map((a) => a.id))
+
+        set((state) => ({
+          projects: state.projects.filter((p) => p.id !== id),
+          sequences: state.sequences.filter((s) => s.projectId !== id),
+          scenes: state.scenes.filter((s) => s.projectId !== id),
+          shots: state.shots.filter((s) => s.projectId !== id),
+          edges: state.edges.filter((e) => !sceneIds.has(e.source) && !sceneIds.has(e.target)),
+          assets: state.assets.filter((a) => a.projectId !== id),
+          assetJournal: state.assetJournal.filter((j) => !assetIds.has(j.assetId)),
+          jobs: state.jobs.filter((j) => j.projectId !== id),
+          writingMissions: state.writingMissions.filter((m) => m.projectId !== id),
+          writingMessages: state.writingMessages.filter((m) => !missionIds.has(m.missionId)),
+          writingVariants: state.writingVariants.filter((v) => !missionIds.has(v.missionId)),
+          productionJobs: state.productionJobs.filter((j) => j.projectId !== id),
+          reviewComments: state.reviewComments.filter((c) => c.projectId !== id),
+          reviewChecklists: state.reviewChecklists.filter((c) => c.projectId !== id),
+          deliverablePackages: state.deliverablePackages.filter((d) => d.projectId !== id),
+          assetCollections: state.assetCollections.filter((c) => c.projectId !== id),
+          traces: state.traces.filter((t) => t.projectId !== id),
+          selectedSceneId: state.selectedSceneId && sceneIds.has(state.selectedSceneId) ? null : state.selectedSceneId,
+          selectedShotId:
+            state.selectedShotId && state.shots.find((s) => s.id === state.selectedShotId)?.projectId === id
+              ? null
+              : state.selectedShotId,
+        }))
+        get().triggerSaveIndicator()
+        return { ok: true }
       },
 
       getProject: (slug) => {

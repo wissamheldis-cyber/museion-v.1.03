@@ -8,6 +8,7 @@ import { AppShell } from '@/components/layout/AppShell'
 import { StatusBadge } from '@/components/ui/Badge'
 import { ProgressBar } from '@/components/ui/ProgressBar'
 import { Button } from '@/components/ui/Button'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import {
   Plus,
   Search,
@@ -15,6 +16,7 @@ import {
   Star,
   Archive,
   ChevronDown,
+  Trash2,
 } from 'lucide-react'
 import { FORMAT_LABELS, GENRE_LABELS, STATUS_LABELS, cn } from '@/lib/utils'
 import type { Project } from '@/lib/types'
@@ -25,13 +27,16 @@ const GENRES = ['', 'historical', 'epic', 'drama', 'thriller', 'documentary', 'f
 
 export default function ProjectsListPage() {
   const router = useRouter()
-  const { projects, toggleFavorite} = useMuseionStore()
+  const { projects, toggleFavorite, deleteProject } = useMuseionStore()
 
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [formatFilter, setFormatFilter] = useState('')
   const [genreFilter, setGenreFilter] = useState('')
   const [showArchived, setShowArchived] = useState(false)
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const filtered = useMemo(() => {
     return projects.filter((p) => {
@@ -104,6 +109,11 @@ export default function ProjectsListPage() {
             </div>
 
             {/* Résultats */}
+            {deleteError && (
+              <div className="mb-3 rounded-[var(--radius-sm)] border border-[var(--state-danger)]/40 bg-[var(--state-danger)]/10 px-3 py-2 text-xs text-[var(--state-danger)]">
+                {deleteError}
+              </div>
+            )}
             <div className="space-y-2">
               {filtered.length === 0 && (
                 <div className="text-center py-16 text-[var(--text-muted)]">
@@ -116,6 +126,10 @@ export default function ProjectsListPage() {
                   key={project.id}
                   project={project}
                   onToggleFavorite={() => toggleFavorite(project.id)}
+                  onDelete={() => {
+                    setDeleteError(null)
+                    setProjectToDelete(project)
+                  }}
                 />
               ))}
             </div>
@@ -184,11 +198,40 @@ export default function ProjectsListPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={projectToDelete !== null}
+        title="Supprimer le projet"
+        message={`« ${projectToDelete?.title ?? ''} » sera définitivement supprimé, avec tout son contenu (storyboard, assets, écriture, revue, livrables). Cette action est irréversible.`}
+        confirmLabel={deleting ? 'Suppression…' : 'Supprimer définitivement'}
+        onCancel={() => {
+          if (deleting) return
+          setProjectToDelete(null)
+        }}
+        onConfirm={async () => {
+          if (!projectToDelete || deleting) return
+          setDeleting(true)
+          const result = await deleteProject(projectToDelete.id)
+          setDeleting(false)
+          if (!result.ok) {
+            setDeleteError(result.message)
+          }
+          setProjectToDelete(null)
+        }}
+      />
     </AppShell>
   )
 }
 
-function ProjectRow({ project, onToggleFavorite }: { project: Project; onToggleFavorite: () => void }) {
+function ProjectRow({
+  project,
+  onToggleFavorite,
+  onDelete,
+}: {
+  project: Project
+  onToggleFavorite: () => void
+  onDelete: () => void
+}) {
   return (
     <div className="group flex items-center gap-4 p-4 rounded-[var(--radius-lg)] bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:border-[var(--border-default)] transition-all">
       {/* Miniature */}
@@ -251,6 +294,16 @@ function ProjectRow({ project, onToggleFavorite }: { project: Project; onToggleF
           title={project.isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
         >
           <Star size={14} fill={project.isFavorite ? 'currentColor' : 'none'} />
+        </button>
+        <button
+          onClick={(e) => {
+            e.preventDefault()
+            onDelete()
+          }}
+          className="p-1.5 rounded text-[var(--text-muted)] transition-colors hover:text-[var(--state-danger)]"
+          title="Supprimer le projet"
+        >
+          <Trash2 size={14} />
         </button>
         <Link
           href={`/cinema/projects/${project.slug}`}

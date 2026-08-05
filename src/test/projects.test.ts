@@ -334,6 +334,56 @@ describe('Quota de projets par studio', () => {
 
 // ------------------------------------------------------------
 
+describe('Suppression de projet', () => {
+  it('supprime le projet et ses données de storyboard associées', async () => {
+    const a = await create(PROJECT_A)
+    act(() => {
+      const seq = store().addSequence(a.id)
+      const scene = store().addScene(seq.id)
+      store().addShot(scene.id)
+    })
+    expect(store().sequences.some((s) => s.projectId === a.id)).toBe(true)
+
+    let result: Awaited<ReturnType<ReturnType<typeof store>['deleteProject']>> | undefined
+    await act(async () => {
+      result = await store().deleteProject(a.id)
+    })
+
+    expect(result?.ok).toBe(true)
+    expect(store().projects.find((p) => p.id === a.id)).toBeUndefined()
+    expect(store().sequences.some((s) => s.projectId === a.id)).toBe(false)
+    expect(store().scenes.some((s) => s.projectId === a.id)).toBe(false)
+    expect(store().shots.some((s) => s.projectId === a.id)).toBe(false)
+  })
+
+  it('libère un emplacement de quota après suppression', async () => {
+    useMuseionStore.setState({ currentStudioProjectLimit: 1 })
+    const a = await create(PROJECT_A)
+
+    await act(async () => {
+      await store().deleteProject(a.id)
+    })
+
+    const b = await create(PROJECT_B)
+    expect(b.title).toBe('Projet B')
+  })
+
+  it('refuse de supprimer sans studio actif', async () => {
+    const a = await create(PROJECT_A)
+    useMuseionStore.setState({ currentStudioId: null })
+
+    let result: Awaited<ReturnType<ReturnType<typeof store>['deleteProject']>> | undefined
+    await act(async () => {
+      result = await store().deleteProject(a.id)
+    })
+
+    expect(result?.ok).toBe(false)
+    expect(store().projects.find((p) => p.id === a.id)).toBeDefined()
+  })
+})
+
+// ------------------------------------------------------------
+
 describe('Démonstration Gilgamesh', () => {
   it('est marquée comme démo et porte une version', () => {
     const demo = store().projects.find((p) => p.id === DEMO_PROJECT_ID)!

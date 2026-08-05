@@ -14,8 +14,8 @@
 insert into public.studios (id, name, plan, project_limit)
 values
   ('00000000-0000-4000-8000-000000000001', 'Museion Studio', 'pro', null),
-  ('00000000-0000-4000-8000-000000000002', 'Jim Filmmaker Studio', 'pro', 3),
-  ('00000000-0000-4000-8000-000000000003', 'GRIFZ Studio', 'pro', 3)
+  ('00000000-0000-4000-8000-000000000002', 'Jim Filmmaker Studio', 'pro', 6),
+  ('00000000-0000-4000-8000-000000000003', 'GRIFZ Studio', 'pro', 6)
 on conflict (id) do update set project_limit = excluded.project_limit;
 
 -- GRIFZ Studio doubles as "Studio B" for cross-studio isolation testing.
