@@ -40,15 +40,22 @@ function applySession(user: User | null) {
   listeners.forEach((callback) => callback(cachedSession))
 }
 
-supabase().auth.onAuthStateChange((_event, session) => {
-  applySession(session?.user ?? null)
-})
+// Ce module est importé par un composant 'use client' (StoreHydration) qui
+// est lui-même évalué côté serveur pendant le rendu/prerendering Next.js.
+// Sans ce garde, createBrowserClient() s'exécute pendant le build (où les
+// variables d'environnement peuvent ne pas être injectées) et fait échouer
+// la génération des pages statiques comme /_not-found.
+if (typeof window !== 'undefined') {
+  supabase().auth.onAuthStateChange((_event, session) => {
+    applySession(session?.user ?? null)
+  })
 
-// Populate the cache immediately so getSession() has a value before the
-// first onAuthStateChange fires (avoids a false "logged out" flash).
-supabase().auth.getUser().then(({ data }) => {
-  applySession(data.user ?? null)
-})
+  // Populate the cache immediately so getSession() has a value before the
+  // first onAuthStateChange fires (avoids a false "logged out" flash).
+  supabase().auth.getUser().then(({ data }) => {
+    applySession(data.user ?? null)
+  })
+}
 
 // ============================================================
 // SupabaseAuthAdapter — Implémentation V2 (auth réelle)
