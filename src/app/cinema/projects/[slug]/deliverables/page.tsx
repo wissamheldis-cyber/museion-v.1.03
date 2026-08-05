@@ -9,9 +9,86 @@ import { Input } from "@/components/ui/Input";
 import { cn, formatDate } from "@/lib/utils";
 import { Download, FileJson, Check, PackagePlus } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
+import type { Project } from "@/lib/types";
+import type { Asset, Shot, StoryboardScene } from "@/lib/types-storyboard";
+import type { DeliverableSection } from "@/lib/types-sprint4";
+
+function escapeHtml(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+/** Rend le vrai contenu du projet pour une section de livrable — jamais de texte factice. */
+function sectionContentHtml(
+  type: DeliverableSection["type"],
+  project: Project,
+  scenes: StoryboardScene[],
+  shots: Shot[],
+  assets: Asset[]
+): string {
+  switch (type) {
+    case "vision": {
+      const v = project.vision;
+      const rows = v
+        ? [
+            v.promise && `<p><strong>Promesse :</strong> ${escapeHtml(v.promise)}</p>`,
+            v.intention && `<p><strong>Intention :</strong> ${escapeHtml(v.intention)}</p>`,
+            v.theme && `<p><strong>Thème :</strong> ${escapeHtml(v.theme)}</p>`,
+            v.world && `<p><strong>Univers :</strong> ${escapeHtml(v.world)}</p>`,
+            v.tone && `<p><strong>Ton :</strong> ${escapeHtml(v.tone)}</p>`,
+          ].filter(Boolean)
+        : [];
+      return rows.length ? rows.join("\n") : "<p><em>Aucune vision renseignée.</em></p>";
+    }
+    case "logline":
+      return project.logline ? `<p>${escapeHtml(project.logline)}</p>` : "<p><em>Aucune logline renseignée.</em></p>";
+    case "synopsis": {
+      const s = project.synopsis;
+      const rows = s
+        ? [
+            s.short && `<p><strong>Court :</strong> ${escapeHtml(s.short)}</p>`,
+            s.long && `<p><strong>Long :</strong> ${escapeHtml(s.long)}</p>`,
+          ].filter(Boolean)
+        : [];
+      return rows.length ? rows.join("\n") : "<p><em>Aucun synopsis renseigné.</em></p>";
+    }
+    case "treatment": {
+      const t = project.treatment;
+      const rows = t
+        ? [
+            t.actI?.content && `<p><strong>Acte I :</strong> ${escapeHtml(t.actI.content)}</p>`,
+            t.actII?.content && `<p><strong>Acte II :</strong> ${escapeHtml(t.actII.content)}</p>`,
+            t.actIII?.content && `<p><strong>Acte III :</strong> ${escapeHtml(t.actIII.content)}</p>`,
+          ].filter(Boolean)
+        : [];
+      return rows.length ? rows.join("\n") : "<p><em>Aucun traitement renseigné.</em></p>";
+    }
+    case "characters":
+      return project.characters?.length
+        ? `<ul>${project.characters.map((c) => `<li><strong>${escapeHtml(c.name)}</strong> — ${escapeHtml(c.role)}</li>`).join("")}</ul>`
+        : "<p><em>Aucun personnage renseigné.</em></p>";
+    case "storyboard":
+      return scenes.length
+        ? `<p>${scenes.length} scène(s).</p><ul>${scenes
+            .slice()
+            .sort((a, b) => a.order - b.order)
+            .map((s) => `<li>Scène ${s.number} — ${escapeHtml(s.title)}</li>`)
+            .join("")}</ul>`
+        : "<p><em>Aucune scène de storyboard.</em></p>";
+    case "shots":
+      return shots.length ? `<p>${shots.length} plan(s) technique(s) découpé(s).</p>` : "<p><em>Aucun plan technique.</em></p>";
+    case "assets": {
+      const canonical = assets.filter((a) => a.status === "canonical" || a.status === "approved");
+      return canonical.length
+        ? `<p>${canonical.length} asset(s) canonique(s) ou approuvé(s).</p>`
+        : "<p><em>Aucun asset canonique ou approuvé.</em></p>";
+    }
+    default:
+      return "";
+  }
+}
 
 export default function DeliverablesPage() {
-  const { project, slug } = useProjectScope();
+  const { project, slug, scenes, shots, assets } = useProjectScope();
   const projectId = project?.id || '';
   const store = useMuseionStore();
   const [newTitle, setNewTitle] = useState("");
@@ -59,8 +136,8 @@ export default function DeliverablesPage() {
 <p><em>Généré par Museion le ${new Date().toLocaleDateString()}</em></p>
 ${selectedPkg.sections.filter(s => s.included).map(s => `
   <div class="section">
-    <h2>${s.label}</h2>
-    <p>Contenu issu du projet (Mock pour ${s.label})...</p>
+    <h2>${escapeHtml(s.label)}</h2>
+    ${sectionContentHtml(s.type, project, scenes, shots, assets)}
   </div>
 `).join('\n')}
 </body>

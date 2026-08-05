@@ -9,18 +9,20 @@ import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/utils";
 import { Check, X, MessageSquare, ListTodo, PenTool } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { SuccessToast } from "@/components/ui/SuccessToast";
 
 export default function ReviewPage() {
   const { project, slug, assets } = useProjectScope();
   const projectId = project?.id || '';
   const store = useMuseionStore();
-  
+
   const reviewAssets = (assets || []).filter(a => a.status === "candidate" || a.status === "ephemeral");
   const [selectedAssetId, setSelectedAssetId] = useState<string|null>(null);
   const [compareAssetId, setCompareAssetId] = useState<string|null>(null);
   const [newComment, setNewComment] = useState("");
   const [newChecklist, setNewChecklist] = useState("");
   const [drawMode, setDrawMode] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   if (!project) return <AppShell projectSlug={slug}><ProjectNotFound slug={slug} /></AppShell>;
 
@@ -45,7 +47,7 @@ export default function ReviewPage() {
     });
     store.setAssetStatus(selectedAsset.id, "archived");
     setSelectedAssetId(null);
-    alert("Nouveau job de variation créé (brouillon) et asset actuel archivé.");
+    setToast("Nouveau job de variation créé (brouillon) et asset actuel archivé.");
   };
 
   return (
@@ -150,6 +152,7 @@ export default function ReviewPage() {
           )}
         </div>
       </div>
+      <SuccessToast message={toast} onDismiss={() => setToast(null)} />
     </AppShell>
   );
 }

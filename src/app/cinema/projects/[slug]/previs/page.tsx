@@ -9,13 +9,14 @@ import { Input } from "@/components/ui/Input";
 import { cn, generateId } from "@/lib/utils";
 import { Play, Copy, RefreshCw, XCircle, Image as ImageIcon } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { SuccessToast } from "@/components/ui/SuccessToast";
 import { Asset } from "@/lib/types-storyboard";
 
 export default function PrevisPage() {
   const { project, slug, scenes, shots, assets } = useProjectScope();
   const projectId = project?.id || '';
   const store = useMuseionStore();
-  
+
   const [sceneId, setSceneId] = useState("");
   const [shotId, setShotId] = useState("");
   const [prompt, setPrompt] = useState("");
@@ -24,6 +25,7 @@ export default function PrevisPage() {
   const [selectedReferences, setSelectedReferences] = useState<string[]>([]);
   const [previewResult, setPreviewResult] = useState<Asset | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   if (!project) return <AppShell projectSlug={slug}><ProjectNotFound slug={slug} /></AppShell>;
 
@@ -83,7 +85,7 @@ export default function PrevisPage() {
     });
     
     setPreviewResult(null);
-    alert("Job de production créé (brouillon) et asset sauvegardé.");
+    setToast("Job de production créé (brouillon) et asset sauvegardé.");
   };
 
   return (
@@ -173,6 +175,7 @@ export default function PrevisPage() {
           )}
         </div>
       </div>
+      <SuccessToast message={toast} onDismiss={() => setToast(null)} />
     </AppShell>
   );
 }

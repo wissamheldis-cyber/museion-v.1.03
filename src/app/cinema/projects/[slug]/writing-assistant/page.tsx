@@ -9,6 +9,7 @@ import { Input, Textarea } from "@/components/ui/Input";
 import { cn, generateId } from "@/lib/utils";
 import { Send, Plus, Check, ArrowRightToLine } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { SuccessToast } from "@/components/ui/SuccessToast";
 
 const mockWritingProvider = { generate: async (_m: unknown, _h: unknown) => ({ id: generateId(), role: "assistant" as const, content: "Réponse simulée", timestamp: Date.now() }), isSimulation: true, isActive: true, label: "Mock GPT" };
 
@@ -24,6 +25,7 @@ export default function WritingAssistantPage() {
   const [classification, setClassification] = useState<import('@/lib/types-sprint4').WritingClassification>("open-question");
   const [insertModalTarget, setInsertModalTarget] = useState<{ id: string; content: string; type: 'message' | 'variant' } | null>(null);
   const [insertSubField, setInsertSubField] = useState<string>("");
+  const [toast, setToast] = useState<string | null>(null);
 
   if (!project) return <AppShell projectSlug={slug}><ProjectNotFound slug={slug} /></AppShell>;
 
@@ -63,8 +65,11 @@ export default function WritingAssistantPage() {
       const field = insertSubField || 'promise';
       store.updateProject(projectId, { vision: { ...(project.vision || { promise: '', intention: '', theme: '', world: '', conflict: '', arc: '', tone: '', audience: '', duration: '', references: [] }), [field]: content } });
     } else {
-      // Pour les autres cibles (treatment, characters, script), on simule l'insertion
-      alert(`Simulation : Insertion dans ${target} avec succès.`);
+      // L'insertion directe n'est câblée que pour logline/synopsis/vision —
+      // ne jamais prétendre avoir écrit dans une cible non gérée.
+      setToast(`Insertion directe non disponible pour « ${target} » pour le moment. Copiez le texte manuellement.`);
+      setInsertModalTarget(null);
+      return;
     }
     setInsertModalTarget(null);
   };
@@ -196,6 +201,7 @@ export default function WritingAssistantPage() {
           </div>
         )}
       </div>
+      <SuccessToast message={toast} onDismiss={() => setToast(null)} />
     </AppShell>
   );
 }

@@ -33,6 +33,7 @@ import type {
   ReviewComment,
   ReviewChecklist,
   DeliverablePackage,
+  DeliverableSection,
   AssetCollection,
   WritingTarget,
   WritingClassification
@@ -289,6 +290,25 @@ function demoProjectSnapshot(): Project {
 }
 
 const DEMO_SCENE_IDS = new Set(DEMO_SCENES_WITH_ASSETS.map((s) => s.id))
+
+/**
+ * Un package fraîchement créé embarque toutes les sections disponibles,
+ * incluses par défaut. Sans ça, createDeliverablePackage rendait un
+ * package vide qu'aucune UI ne permettait ensuite de remplir.
+ */
+function buildDefaultDeliverableSections(): DeliverableSection[] {
+  const defs: { type: DeliverableSection['type']; label: string }[] = [
+    { type: 'vision', label: 'Vision' },
+    { type: 'logline', label: 'Logline' },
+    { type: 'synopsis', label: 'Synopsis' },
+    { type: 'treatment', label: 'Traitement' },
+    { type: 'characters', label: 'Personnages' },
+    { type: 'storyboard', label: 'Storyboard' },
+    { type: 'shots', label: 'Plans techniques' },
+    { type: 'assets', label: 'Assets canoniques' },
+  ]
+  return defs.map((d) => ({ id: generateId(), type: d.type, label: d.label, included: true }))
+}
 
 function isDemoEdge(edge: StoryboardEdge): boolean {
   return DEMO_SCENE_IDS.has(edge.source) || DEMO_SCENE_IDS.has(edge.target)
@@ -1901,7 +1921,11 @@ export const useMuseionStore = create<MuseionState>()(
       },
 
       createDeliverablePackage: (projectId, title) => {
-        const pack: DeliverablePackage = { id: generateId(), projectId, title, sections: [], createdAt: new Date().toISOString() }
+        const pack: DeliverablePackage = {
+          id: generateId(), projectId, title,
+          sections: buildDefaultDeliverableSections(),
+          createdAt: new Date().toISOString(),
+        }
         set((state) => ({ deliverablePackages: [...state.deliverablePackages, pack] }))
         const studioId = get().currentStudioId
         if (studioId) {
