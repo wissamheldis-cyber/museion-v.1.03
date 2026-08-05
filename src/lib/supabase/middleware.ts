@@ -9,33 +9,40 @@ function isPublicPath(pathname: string) {
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request })
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          response = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
-
-  // getUser() (not getSession()) re-validates the token against the Auth
-  // server on every request — required for middleware to be a real gate.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
   const { pathname } = request.nextUrl
+
+  let user = null
+  try {
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+            response = NextResponse.next({ request })
+            cookiesToSet.forEach(({ name, value, options }) =>
+              response.cookies.set(name, value, options)
+            )
+          },
+        },
+      }
+    )
+
+    // getUser() (not getSession()) re-validates the token against the Auth
+    // server on every request — required for middleware to be a real gate.
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  } catch (err) {
+    // A malformed NEXT_PUBLIC_SUPABASE_URL/PUBLISHABLE_KEY (or a transient
+    // Auth outage) must never take down every route on the site. Fail safe:
+    // treat the request as unauthenticated instead of crashing the whole
+    // middleware invocation.
+    console.error('[middleware] Supabase session check failed', err)
+  }
 
   if (!user && !isPublicPath(pathname)) {
     const url = request.nextUrl.clone()
