@@ -1,5 +1,9 @@
 # Routes — Museion V1
 
+> **Obsolète.** Les routes projet sont passées au segment dynamique `[slug]`
+> (`app/cinema/projects/[slug]/…`), plus des dossiers `gilgamesh/` en dur.
+> Voir `src/app/cinema/` pour la liste réelle des routes.
+
 | Route | Page | Auth requise | Sprint |
 |-------|------|-------------|--------|
 | `/login` | Page de connexion | Non | 1 |

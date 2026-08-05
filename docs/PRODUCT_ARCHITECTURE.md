@@ -1,5 +1,9 @@
 # Architecture produit — Museion V1
 
+> **Obsolète.** Ce document décrit l'architecture V1 (localStorage, `LocalAuthAdapter`,
+> aucun appel réseau). Depuis Sprint 6, Museion tourne sur Supabase (Auth, Postgres, RLS) —
+> voir `CLAUDE.md` et `supabase/migrations/` pour l'état réel actuel.
+
 ## Vue d'ensemble
 
 Museion est un studio créatif local-first. En V1, toutes les données sont persistées dans localStorage via Zustand persist.

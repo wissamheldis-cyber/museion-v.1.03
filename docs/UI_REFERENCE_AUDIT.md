@@ -1,5 +1,9 @@
 # UI Reference Audit — Museion Sprint 1
 
+> **Obsolète.** Décrit la direction artistique bleutée d'origine (#3b8ef0),
+> remplacée depuis par la direction monochrome de `references/ref.png` à
+> `ref4.png` — voir la section « Direction artistique » de `CLAUDE.md`.
+
 ## Logo (Musion logo.png)
 
 - **Page représentée :** Splash / identité de marque

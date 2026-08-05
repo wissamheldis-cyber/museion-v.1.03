@@ -1,5 +1,9 @@
 # Modèle de données — Museion V1
 
+> **Obsolète.** Décrit le modèle V1 en mémoire (dont `LocalAsset`, retiré depuis).
+> Le modèle de données réel vit dans `supabase/migrations/` (tables Postgres,
+> RLS) et `src/lib/types*.ts` (formes TypeScript côté client).
+
 ## Types principaux
 
 ### StudioProfile
