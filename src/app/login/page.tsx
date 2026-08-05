@@ -55,7 +55,11 @@ function LoginForm() {
       if (profile) setProfile(profile)
 
       router.replace(searchParams.get('redirectTo') || '/')
-    } catch {
+    } catch (err) {
+      // Logged explicitly: the Supabase client can fail before any network
+      // request is issued (e.g. a stuck auth lock), which the Network tab
+      // alone won't show.
+      console.error('[login] signInWithEmail failed', err)
       setError('Connexion impossible pour le moment. Réessaie dans quelques minutes.')
       setLoading(false)
     }
