@@ -11,13 +11,20 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
+  const [error, setError] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError('')
     setLoading(true)
-    await supabaseAuthAdapter.requestPasswordReset(email)
-    setLoading(false)
-    setSent(true)
+    try {
+      await supabaseAuthAdapter.requestPasswordReset(email)
+      setSent(true)
+    } catch {
+      setError("Impossible d'envoyer l'email pour le moment. Réessaie dans quelques minutes.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -69,6 +76,13 @@ export default function ForgotPasswordPage() {
                 autoComplete="email"
                 spellCheck={false}
               />
+
+              {error && (
+                <p className="text-xs text-[var(--state-danger)] bg-[var(--state-danger-dim)] border border-[var(--state-danger)]/25 rounded-[var(--radius-sm)] px-3 py-2">
+                  {error}
+                </p>
+              )}
+
               <Button
                 type="submit"
                 variant="primary"
