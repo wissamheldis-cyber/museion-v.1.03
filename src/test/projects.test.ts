@@ -112,7 +112,14 @@ beforeEach(() => {
     // La plupart de ces tests portent sur la logique locale, pas sur la
     // présence d'un studio Supabase réel : on en simule un pour que
     // createProject() n'échoue pas sur le nouveau garde-fou studioId.
-    useMuseionStore.setState({ currentStudioId: TEST_STUDIO_ID, currentStudioRole: 'owner' })
+    useMuseionStore.setState({
+      currentStudioId: TEST_STUDIO_ID, currentStudioRole: 'owner', currentStudioProjectLimit: null,
+      // resetToDemo() court-circuite bootstrapDemoData (qui marque le
+      // contenu de démo countsTowardProjectLimit: false côté Supabase) : on
+      // reproduit ça ici pour que les projets de démo de la fixture ne
+      // consomment jamais le quota dans ces tests.
+      projects: store().projects.map((p) => ({ ...p, countsTowardProjectLimit: false })),
+    })
   })
 })
 
@@ -279,6 +286,49 @@ describe('Création réelle et isolation stricte', () => {
 
   it('refuse de rattacher une scène à une séquence inexistante', () => {
     expect(() => store().addScene('sequence-inexistante')).toThrow(/Séquence introuvable/)
+  })
+})
+
+// ------------------------------------------------------------
+
+describe('Quota de projets par studio', () => {
+  it('bloque la création au-delà de la limite du studio', async () => {
+    useMuseionStore.setState({ currentStudioProjectLimit: 1 })
+
+    await create(PROJECT_A)
+
+    let result: Awaited<ReturnType<ReturnType<typeof store>['createProject']>> | undefined
+    await act(async () => {
+      result = await store().createProject(PROJECT_B)
+    })
+
+    expect(result?.ok).toBe(false)
+    if (result && !result.ok) {
+      expect(result.message).toMatch(/Limite de 1 projet/)
+    }
+    expect(store().projects.filter((p) => p.title === 'Projet B')).toHaveLength(0)
+  })
+
+  it('ne compte pas les projets bootstrap (démo) dans le quota', async () => {
+    useMuseionStore.setState({ currentStudioProjectLimit: 1 })
+
+    // resetToDemo() (dans beforeEach) a déjà peuplé le studio de plusieurs
+    // projets countsTowardProjectLimit: false — ils ne doivent pas consommer
+    // le quota de projets réels du compte.
+    expect(store().projects.length).toBeGreaterThan(0)
+    expect(store().projects.every((p) => p.countsTowardProjectLimit === false)).toBe(true)
+
+    const created = await create(PROJECT_A)
+    expect(created.title).toBe('Projet A')
+  })
+
+  it("n'applique aucune limite quand currentStudioProjectLimit est null (studio illimité)", async () => {
+    useMuseionStore.setState({ currentStudioProjectLimit: null })
+
+    await create(PROJECT_A)
+    const b = await create(PROJECT_B)
+
+    expect(b.title).toBe('Projet B')
   })
 })
 

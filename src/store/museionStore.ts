@@ -259,6 +259,8 @@ interface MuseionState {
   isV2Hydrated: boolean
   currentStudioId: string | null
   currentStudioRole: 'owner' | 'admin' | 'creator' | 'reviewer' | null
+  /** null = illimité. */
+  currentStudioProjectLimit: number | null
   hydrationError: string | null
   initV2: () => Promise<void>
 }
@@ -341,7 +343,8 @@ export const useMuseionStore = create<MuseionState>()(
       signOut: () => {
         set({
           auth: null, studioProfile: null, isV2Hydrated: false,
-          currentStudioId: null, currentStudioRole: null, hydrationError: null,
+          currentStudioId: null, currentStudioRole: null, currentStudioProjectLimit: null,
+          hydrationError: null,
         })
       },
 
@@ -401,6 +404,20 @@ export const useMuseionStore = create<MuseionState>()(
             errors: {},
             message:
               "Aucun studio actif pour ce compte. Le projet n'a pas été créé — vérifiez que ce compte appartient bien à un studio.",
+          }
+        }
+
+        const projectLimit = get().currentStudioProjectLimit
+        if (projectLimit !== null) {
+          const activeProjectCount = get().projects.filter(
+            (p) => p.countsTowardProjectLimit !== false
+          ).length
+          if (activeProjectCount >= projectLimit) {
+            return {
+              ok: false,
+              errors: {},
+              message: `Limite de ${projectLimit} projets atteinte pour ce studio. Archivez ou supprimez un projet existant pour en créer un nouveau.`,
+            }
           }
         }
 
@@ -987,6 +1004,7 @@ export const useMuseionStore = create<MuseionState>()(
       isV2Hydrated: false,
       currentStudioId: null,
       currentStudioRole: null,
+      currentStudioProjectLimit: null,
       hydrationError: null,
       initV2: async () => {
         // Once hydrated with no studio (e.g. ran before sign-in completed),
@@ -996,13 +1014,19 @@ export const useMuseionStore = create<MuseionState>()(
         try {
           const studio = await resolveCurrentStudio();
           if (!studio) {
-            set({ isV2Hydrated: true, currentStudioId: null, currentStudioRole: null, hydrationError: null });
+            set({
+              isV2Hydrated: true, currentStudioId: null, currentStudioRole: null,
+              currentStudioProjectLimit: null, hydrationError: null,
+            });
             return;
           }
 
           let workspace = await fetchWorkspace(studio.id);
           if (workspace.projects.length === 0) {
-            await bootstrapDemoData(studio.id);
+            // Le studio illimité (project_limit null) est le studio admin —
+            // seul lui reçoit le catalogue de démo complet ; les autres ne
+            // reçoivent que Gilgamesh, qui sert de tutoriel.
+            await bootstrapDemoData(studio.id, { fullCatalog: studio.projectLimit === null });
             workspace = await fetchWorkspace(studio.id);
           }
 
@@ -1010,6 +1034,7 @@ export const useMuseionStore = create<MuseionState>()(
             isV2Hydrated: true,
             currentStudioId: studio.id,
             currentStudioRole: studio.role,
+            currentStudioProjectLimit: studio.projectLimit,
             hydrationError: null,
             projects: workspace.projects,
             assets: workspace.assets,
@@ -1038,6 +1063,7 @@ export const useMuseionStore = create<MuseionState>()(
             isV2Hydrated: true,
             currentStudioId: null,
             currentStudioRole: null,
+            currentStudioProjectLimit: null,
             hydrationError: err instanceof Error ? err.message : 'Impossible de charger les données du studio.',
           });
         }

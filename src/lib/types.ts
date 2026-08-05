@@ -296,6 +296,12 @@ export interface Project {
   /** Projet de démonstration guidée, réinitialisable. */
   isDemo?: boolean
   demoVersion?: string
+  /**
+   * false pour les projets peuplés automatiquement au bootstrap d'un studio
+   * neuf (bootstrapDemoData) — ils ne doivent pas consommer le quota de
+   * projets du compte. Undefined/true = compte normalement.
+   */
+  countsTowardProjectLimit?: boolean
   coverImageUrl?: string
   completionPercent: number
   createdAt: string

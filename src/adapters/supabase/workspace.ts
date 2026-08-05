@@ -30,23 +30,44 @@ export async function fetchWorkspace(studioId: string) {
   }
 }
 
+/** Seul projet de démo conservé pour les studios non-admin (fait office de tuto). */
+const GILGAMESH_PROJECT_ID = 'proj-gilgamesh'
+
 /**
- * A freshly created studio has no data. Seed it with the same demo projects
- * (Gilgamesh and friends) V1 shipped with locally, so the guided tour and
- * demo walkthrough keep working out of the box once auth is real.
+ * A freshly created studio has no data. Seed it with demo projects so the
+ * guided tour and demo walkthrough keep working out of the box once auth is
+ * real. The admin studio (illimité, project_limit null) gets the full demo
+ * catalog ; tout autre studio ne reçoit que Gilgamesh, qui sert de tutoriel.
  *
  * The static fixtures use human-readable ids ("proj-gilgamesh", "seq-01",
  * "shot-001"...) — every Postgres primary key here is `uuid`, so every id
  * and cross-reference is remapped to a fresh UUID before insertion.
  */
-export async function bootstrapDemoData(studioId: string): Promise<void> {
-  const projectIds = new Map(DEMO_PROJECTS.map((p) => [p.id, crypto.randomUUID()]))
-  const assetIds = new Map(DEMO_ASSETS.map((a) => [a.id, crypto.randomUUID()]))
-  const sequenceIds = new Map(DEMO_SEQUENCES.map((s) => [s.id, crypto.randomUUID()]))
-  const sceneIds = new Map(DEMO_SCENES_WITH_ASSETS.map((s) => [s.id, crypto.randomUUID()]))
-  const shotIds = new Map(DEMO_SHOTS.map((s) => [s.id, crypto.randomUUID()]))
+export async function bootstrapDemoData(
+  studioId: string,
+  options?: { fullCatalog?: boolean }
+): Promise<void> {
+  const demoProjects = options?.fullCatalog
+    ? DEMO_PROJECTS
+    : DEMO_PROJECTS.filter((p) => p.id === GILGAMESH_PROJECT_ID)
+  const retainedProjectIds = new Set(demoProjects.map((p) => p.id))
 
-  const remappedProjects: Project[] = DEMO_PROJECTS.map((project) => ({
+  const demoSequences = DEMO_SEQUENCES.filter((s) => retainedProjectIds.has(s.projectId))
+  const demoScenes = DEMO_SCENES_WITH_ASSETS.filter((s) => retainedProjectIds.has(s.projectId))
+  const demoShots = DEMO_SHOTS.filter((s) => retainedProjectIds.has(s.projectId))
+  const retainedSceneIds = new Set(demoScenes.map((s) => s.id))
+  const demoEdges = DEMO_STORYBOARD_EDGES.filter(
+    (e) => retainedSceneIds.has(e.source) && retainedSceneIds.has(e.target)
+  )
+  const demoAssets = DEMO_ASSETS.filter((a) => retainedProjectIds.has(a.projectId))
+
+  const projectIds = new Map(demoProjects.map((p) => [p.id, crypto.randomUUID()]))
+  const assetIds = new Map(demoAssets.map((a) => [a.id, crypto.randomUUID()]))
+  const sequenceIds = new Map(demoSequences.map((s) => [s.id, crypto.randomUUID()]))
+  const sceneIds = new Map(demoScenes.map((s) => [s.id, crypto.randomUUID()]))
+  const shotIds = new Map(demoShots.map((s) => [s.id, crypto.randomUUID()]))
+
+  const remappedProjects: Project[] = demoProjects.map((project) => ({
     ...project,
     id: projectIds.get(project.id)!,
     loglineHistory: project.loglineHistory.map((v) => ({ ...v, id: crypto.randomUUID() })),
@@ -58,7 +79,9 @@ export async function bootstrapDemoData(studioId: string): Promise<void> {
   }))
 
   for (const project of remappedProjects) {
-    await createProjectRemote(studioId, project)
+    // Le contenu de démo ne doit jamais consommer le quota de projets réels
+    // du compte — il n'est pas créé par l'utilisateur.
+    await createProjectRemote(studioId, project, { countsTowardLimit: false })
     for (const version of project.loglineHistory) {
       await addLoglineVersionRemote(studioId, project.id, version)
     }
@@ -73,7 +96,7 @@ export async function bootstrapDemoData(studioId: string): Promise<void> {
     }
   }
 
-  const remappedAssets: Asset[] = DEMO_ASSETS.map((asset) => ({
+  const remappedAssets: Asset[] = demoAssets.map((asset) => ({
     ...asset,
     id: assetIds.get(asset.id)!,
     projectId: projectIds.get(asset.projectId) ?? asset.projectId,
@@ -84,7 +107,7 @@ export async function bootstrapDemoData(studioId: string): Promise<void> {
     await createAssetRemote(studioId, asset)
   }
 
-  const remappedSequences: Sequence[] = DEMO_SEQUENCES.map((sequence) => ({
+  const remappedSequences: Sequence[] = demoSequences.map((sequence) => ({
     ...sequence,
     id: sequenceIds.get(sequence.id)!,
     projectId: projectIds.get(sequence.projectId) ?? sequence.projectId,
@@ -93,7 +116,7 @@ export async function bootstrapDemoData(studioId: string): Promise<void> {
     await createSequenceRemote(studioId, sequence)
   }
 
-  const remappedScenes: StoryboardScene[] = DEMO_SCENES_WITH_ASSETS.map((scene) => ({
+  const remappedScenes: StoryboardScene[] = demoScenes.map((scene) => ({
     ...scene,
     id: sceneIds.get(scene.id)!,
     projectId: projectIds.get(scene.projectId) ?? scene.projectId,
@@ -104,7 +127,7 @@ export async function bootstrapDemoData(studioId: string): Promise<void> {
     await createSceneRemote(studioId, scene)
   }
 
-  const remappedShots: Shot[] = DEMO_SHOTS.map((shot) => ({
+  const remappedShots: Shot[] = demoShots.map((shot) => ({
     ...shot,
     id: shotIds.get(shot.id)!,
     projectId: projectIds.get(shot.projectId) ?? shot.projectId,
@@ -115,15 +138,15 @@ export async function bootstrapDemoData(studioId: string): Promise<void> {
     await createShotRemote(studioId, shot)
   }
 
-  const projectIdByScene = new Map(DEMO_SCENES_WITH_ASSETS.map((scene) => [scene.id, scene.projectId]))
-  const remappedEdges: { edge: StoryboardEdge; projectId: string }[] = DEMO_STORYBOARD_EDGES.map((edge) => ({
+  const projectIdByScene = new Map(demoScenes.map((scene) => [scene.id, scene.projectId]))
+  const remappedEdges: { edge: StoryboardEdge; projectId: string }[] = demoEdges.map((edge) => ({
     edge: {
       ...edge,
       id: crypto.randomUUID(),
       source: sceneIds.get(edge.source) ?? edge.source,
       target: sceneIds.get(edge.target) ?? edge.target,
     },
-    projectId: projectIds.get(projectIdByScene.get(edge.source) ?? DEMO_PROJECTS[0].id) ?? DEMO_PROJECTS[0].id,
+    projectId: projectIds.get(projectIdByScene.get(edge.source) ?? demoProjects[0].id) ?? demoProjects[0].id,
   }))
   for (const { edge, projectId } of remappedEdges) {
     await createEdgeRemote(studioId, projectId, edge)

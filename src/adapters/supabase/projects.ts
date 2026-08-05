@@ -16,6 +16,7 @@ interface ProjectRow {
   id: string; slug: string; title: string; status: string; format: string; genre: string
   cover_image_url: string | null; is_favorite: boolean; completion_percent: number
   is_demo: boolean; is_archived: boolean; demo_version: string | null
+  counts_toward_project_limit: boolean
   created_at: string; updated_at: string
 }
 
@@ -65,6 +66,7 @@ function assembleProject(
     isArchived: row.is_archived,
     isDemo: row.is_demo,
     demoVersion: row.demo_version ?? undefined,
+    countsTowardProjectLimit: row.counts_toward_project_limit,
     coverImageUrl: row.cover_image_url ?? undefined,
     completionPercent: row.completion_percent,
     createdAt: row.created_at,
@@ -174,7 +176,11 @@ function scriptSceneFromRow(row: {
 // Writes
 // ============================================================
 
-export async function createProjectRemote(studioId: string, project: Project): Promise<void> {
+export async function createProjectRemote(
+  studioId: string,
+  project: Project,
+  options?: { countsTowardLimit?: boolean }
+): Promise<void> {
   const { error } = await supabase().from('projects').insert({
     id: project.id,
     studio_id: studioId,
@@ -188,6 +194,7 @@ export async function createProjectRemote(studioId: string, project: Project): P
     is_archived: project.isArchived,
     is_demo: project.isDemo ?? false,
     demo_version: project.demoVersion ?? null,
+    counts_toward_project_limit: options?.countsTowardLimit ?? true,
     completion_percent: project.completionPercent,
   })
   if (error) throw error

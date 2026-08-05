@@ -9,12 +9,14 @@
 -- already exists; until then these inserts simply match zero rows.
 -- ============================================================================
 
-insert into public.studios (id, name, plan)
+-- Museion Studio (shou.edition@gmail.com) is the platform admin account and
+-- has no project cap; the other two seeded studios keep the default limit.
+insert into public.studios (id, name, plan, project_limit)
 values
-  ('00000000-0000-4000-8000-000000000001', 'Museion Studio', 'pro'),
-  ('00000000-0000-4000-8000-000000000002', 'Jim Filmmaker Studio', 'pro'),
-  ('00000000-0000-4000-8000-000000000003', 'GRIFZ Studio', 'pro')
-on conflict (id) do nothing;
+  ('00000000-0000-4000-8000-000000000001', 'Museion Studio', 'pro', null),
+  ('00000000-0000-4000-8000-000000000002', 'Jim Filmmaker Studio', 'pro', 3),
+  ('00000000-0000-4000-8000-000000000003', 'GRIFZ Studio', 'pro', 3)
+on conflict (id) do update set project_limit = excluded.project_limit;
 
 -- GRIFZ Studio doubles as "Studio B" for cross-studio isolation testing.
 
