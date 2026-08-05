@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   title: 'Museion',
   description: 'Studio créatif — Cinéma, documentaire, récits ambitieux.',
   icons: {
-    icon: '/brand/logo museion.png',
+    icon: '/brand/museion-mark.png',
   },
 }
 

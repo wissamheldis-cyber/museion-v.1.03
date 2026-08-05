@@ -67,7 +67,7 @@ export default function HomePage() {
         <header className="flex items-center justify-between px-8 py-5 border-b border-[var(--border-subtle)]">
           <div className="flex items-center">
             <Image
-              src="/brand/logo museion.png"
+              src="/brand/museion-mark.png"
               alt="Museion"
               width={160}
               height={160}

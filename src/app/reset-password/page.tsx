@@ -74,7 +74,7 @@ export default function ResetPasswordPage() {
         <div className="flex flex-col items-center mb-10">
           <div className="w-96 h-96 relative">
             <Image
-              src="/brand/logo museion.png"
+              src="/brand/museion-mark.png"
               alt="Museion"
               fill
               sizes="384px"
