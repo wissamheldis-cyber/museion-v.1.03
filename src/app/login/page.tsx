@@ -41,19 +41,24 @@ function LoginForm() {
     setError('')
     setLoading(true)
 
-    const session = await supabaseAuthAdapter.signInWithEmail(email, password)
+    try {
+      const session = await supabaseAuthAdapter.signInWithEmail(email, password)
 
-    if (!session) {
-      setError('Email ou mot de passe incorrect.')
+      if (!session) {
+        setError('Email ou mot de passe incorrect.')
+        setLoading(false)
+        return
+      }
+
+      setAuth(session)
+      const profile = supabaseAuthAdapter.getProfile()
+      if (profile) setProfile(profile)
+
+      router.replace(searchParams.get('redirectTo') || '/')
+    } catch {
+      setError('Connexion impossible pour le moment. Réessaie dans quelques minutes.')
       setLoading(false)
-      return
     }
-
-    setAuth(session)
-    const profile = supabaseAuthAdapter.getProfile()
-    if (profile) setProfile(profile)
-
-    router.replace(searchParams.get('redirectTo') || '/')
   }
 
   return (

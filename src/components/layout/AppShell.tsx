@@ -6,6 +6,8 @@ import { supabaseAuthAdapter } from '@/adapters/auth/SupabaseAuthAdapter'
 import { useMuseionStore } from '@/store/museionStore'
 import { DemoTourProvider } from '@/components/tour/DemoTourProvider'
 import { DemoTourController } from '@/components/tour/DemoTourController'
+import { Button } from '@/components/ui/Button'
+import { SyncErrorToast } from './SyncErrorToast'
 import { CinemaSidebar } from './CinemaSidebar'
 import { TopBar } from './TopBar'
 
@@ -27,6 +29,7 @@ export function AppShell({ children, projectSlug, tabs, activeTab, onTabChange }
   const setAuth = useMuseionStore((s) => s.setAuth)
   const setProfile = useMuseionStore((s) => s.setProfile)
   const isV2Hydrated = useMuseionStore((s) => s.isV2Hydrated)
+  const hydrationError = useMuseionStore((s) => s.hydrationError)
   const [collapsed, setCollapsed] = useState(false)
 
   useEffect(() => {
@@ -94,7 +97,19 @@ export function AppShell({ children, projectSlug, tabs, activeTab, onTabChange }
               onToggleCollapsed={() => setCollapsed((value) => !value)}
             />
             <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-              {!isV2Hydrated ? (
+              {hydrationError ? (
+                <div className="flex h-full items-center justify-center text-white/50">
+                  <div className="flex flex-col items-center gap-4 text-center max-w-sm">
+                    <span className="text-sm text-[var(--state-danger)]">
+                      Impossible de charger les données du studio.
+                    </span>
+                    <span className="text-xs text-[var(--text-muted)]">{hydrationError}</span>
+                    <Button variant="secondary" size="sm" onClick={() => useMuseionStore.getState().initV2()}>
+                      Réessayer
+                    </Button>
+                  </div>
+                </div>
+              ) : !isV2Hydrated ? (
                 <div className="flex h-full items-center justify-center text-white/50">
                   <div className="flex flex-col items-center gap-4">
                     <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--primary)] border-t-transparent" />
@@ -109,6 +124,7 @@ export function AppShell({ children, projectSlug, tabs, activeTab, onTabChange }
         </div>
       </div>
       {isV2Hydrated && <DemoTourController />}
+      <SyncErrorToast />
     </DemoTourProvider>
   )
 }

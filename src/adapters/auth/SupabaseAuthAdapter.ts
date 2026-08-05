@@ -68,7 +68,14 @@ export class SupabaseAuthAdapter implements AuthAdapter {
 
   async signInWithEmail(email: string, password: string): Promise<AuthSession | null> {
     const { data, error } = await supabase().auth.signInWithPassword({ email, password })
-    if (error || !data.user) return null
+    if (error) {
+      // Genuinely wrong email/password: let the caller show its normal
+      // "incorrect" message. Anything else (rate limit, network, project
+      // misconfiguration) is thrown so the caller can tell the two apart.
+      if (error.code === 'invalid_credentials') return null
+      throw error
+    }
+    if (!data.user) return null
     applySession(data.user)
     return cachedSession
   }

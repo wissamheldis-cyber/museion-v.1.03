@@ -9,9 +9,7 @@ function supabase() {
 }
 
 export async function fetchSprint4(studioId: string) {
-  const [
-    missionsRes, messagesRes, proposalsRes, jobsRes, commentsRes, checklistRes, deliverablesRes, collectionsRes,
-  ] = await Promise.all([
+  const results = await Promise.all([
     supabase().from('writing_missions').select('*').eq('studio_id', studioId),
     supabase().from('messages').select('*').eq('studio_id', studioId).not('mission_id', 'is', null),
     supabase().from('ai_proposals').select('*').eq('studio_id', studioId),
@@ -21,6 +19,11 @@ export async function fetchSprint4(studioId: string) {
     supabase().from('deliverables').select('*').eq('studio_id', studioId),
     supabase().from('asset_collections').select('*').eq('studio_id', studioId),
   ])
+  const failed = results.find((r) => r.error)
+  if (failed?.error) throw failed.error
+  const [
+    missionsRes, messagesRes, proposalsRes, jobsRes, commentsRes, checklistRes, deliverablesRes, collectionsRes,
+  ] = results
 
   return {
     writingMissions: (missionsRes.data ?? []).map(missionFromRow),

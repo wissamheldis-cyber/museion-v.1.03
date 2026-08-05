@@ -61,9 +61,16 @@ Ces quatre images remplacent la direction artistique bleutée d'origine.
 ## Architecture
 - L'interface doit être plus simple que l'architecture sous-jacente
 - Toutes les pages partagent le même store Zustand
-- Persistance locale uniquement en V1 (LocalAuthAdapter)
-- Supabase prévu mais non installé
+- Supabase est la source de vérité (authentification et données) ; Row Level
+  Security appliquée par studio (`supabase/migrations/`)
+- `LocalAuthAdapter`/`LocalDataAdapter` (V1, sans backend) ont été retirés du
+  dépôt une fois confirmés inutilisés — ne pas les réintroduire
 
-## Profil utilisateur V1
-- Seul profil accepté : `administrateur` (affiché "Administrateur")
-- Aucun mot de passe en V1
+## Profil utilisateur
+- Authentification réelle par email + mot de passe (Supabase Auth,
+  `SupabaseAuthAdapter`) — inscription publique désactivée, comptes
+  provisionnés à la main (voir `docs/SUPABASE_SETUP.md`)
+- Rôles par studio (table `studio_members`) : `owner` / `admin` / `creator` /
+  `reviewer`, utilisés côté RLS
+- L'UI affiche toujours le libellé "Administrateur" pour le profil connecté,
+  quel que soit le rôle réel en base — simplification volontaire, pas un bug

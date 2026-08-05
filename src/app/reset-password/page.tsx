@@ -45,8 +45,17 @@ export default function ResetPasswordPage() {
       await supabaseAuthAdapter.updatePassword(password)
       setDone(true)
       setTimeout(() => router.replace('/'), 1500)
-    } catch {
-      setError('Impossible de mettre à jour le mot de passe. Le lien a peut-être expiré.')
+    } catch (err) {
+      const code = (err as { code?: string } | undefined)?.code
+      if (code === 'session_not_found' || code === 'session_expired') {
+        setError('Le lien a expiré. Demande un nouveau lien de réinitialisation.')
+      } else if (code === 'weak_password') {
+        setError('Ce mot de passe est trop faible — essaie une combinaison plus longue ou plus complexe.')
+      } else if (code === 'same_password') {
+        setError("Le nouveau mot de passe doit être différent de l'ancien.")
+      } else {
+        setError('Impossible de mettre à jour le mot de passe. Réessaie, ou demande un nouveau lien.')
+      }
     } finally {
       setLoading(false)
     }

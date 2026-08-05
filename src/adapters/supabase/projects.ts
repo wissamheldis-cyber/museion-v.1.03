@@ -88,17 +88,19 @@ function traceFromRow(
 // ============================================================
 
 export async function fetchProjects(studioId: string): Promise<Project[]> {
-  const [projectsRes, canonRes, loglineRes, charactersRes, scriptRes, decisionsRes, hypothesesRes, questionsRes] =
-    await Promise.all([
-      supabase().from('projects').select('*').eq('studio_id', studioId).order('created_at', { ascending: false }),
-      supabase().from('project_canon').select('*').eq('studio_id', studioId),
-      supabase().from('logline_versions').select('*').eq('studio_id', studioId).order('created_at', { ascending: false }),
-      supabase().from('characters').select('*').eq('studio_id', studioId),
-      supabase().from('script_scenes').select('*').eq('studio_id', studioId).order('order_index', { ascending: true }),
-      supabase().from('decisions').select('*').eq('studio_id', studioId),
-      supabase().from('hypotheses').select('*').eq('studio_id', studioId),
-      supabase().from('open_questions').select('*').eq('studio_id', studioId),
-    ])
+  const results = await Promise.all([
+    supabase().from('projects').select('*').eq('studio_id', studioId).order('created_at', { ascending: false }),
+    supabase().from('project_canon').select('*').eq('studio_id', studioId),
+    supabase().from('logline_versions').select('*').eq('studio_id', studioId).order('created_at', { ascending: false }),
+    supabase().from('characters').select('*').eq('studio_id', studioId),
+    supabase().from('script_scenes').select('*').eq('studio_id', studioId).order('order_index', { ascending: true }),
+    supabase().from('decisions').select('*').eq('studio_id', studioId),
+    supabase().from('hypotheses').select('*').eq('studio_id', studioId),
+    supabase().from('open_questions').select('*').eq('studio_id', studioId),
+  ])
+  const failed = results.find((r) => r.error)
+  if (failed?.error) throw failed.error
+  const [projectsRes, canonRes, loglineRes, charactersRes, scriptRes, decisionsRes, hypothesesRes, questionsRes] = results
 
   const projects = (projectsRes.data ?? []) as ProjectRow[]
   const canonByProject = new Map<string, CanonRow>((canonRes.data ?? []).map((c) => [c.project_id, c as CanonRow]))

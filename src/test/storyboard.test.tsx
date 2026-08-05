@@ -277,7 +277,11 @@ describe('Storyboard — Canvas et persistance', () => {
 
 describe('Storyboard — glisser un asset sur une scène', () => {
   it('rattache l’asset à la scène et la scène à l’asset', () => {
-    const scene = store().scenes.find((s) => s.id === 'sb-scene-05')!
+    // Une scène sans assetId au départ — plutôt qu'un id figé, dont
+    // l'attachement démo peut changer au fil des sprints (cf. sb-scene-05,
+    // désormais livré avec un asset approuvé par défaut).
+    const scene = store().scenes.find((s) => s.sequenceId === SEQ_1 && !s.assetId)!
+    expect(scene).toBeDefined()
     expect(scene.assetId).toBeUndefined()
 
     act(() => {

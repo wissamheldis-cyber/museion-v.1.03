@@ -87,6 +87,7 @@ interface MuseionState {
   projects: Project[]
   lastSavedAt: string | null
   savedIndicator: boolean
+  syncError: string | null
 
   // Auth
   setAuth: (session: AuthSession | null) => void
@@ -136,6 +137,12 @@ interface MuseionState {
 
   // Save indicator
   triggerSaveIndicator: () => void
+
+  // Sync errors — a background write to Supabase failed after an optimistic
+  // local update. Non-blocking: surfaces the failure instead of the previous
+  // silent console.error, without altering the write itself.
+  reportSyncError: (context: string, err: unknown) => void
+  dismissSyncError: () => void
 
   // ---- Sprint 2 — Storyboard partagé ----
   sequences: Sequence[]
@@ -252,6 +259,7 @@ interface MuseionState {
   isV2Hydrated: boolean
   currentStudioId: string | null
   currentStudioRole: 'owner' | 'admin' | 'creator' | 'reviewer' | null
+  hydrationError: string | null
   initV2: () => Promise<void>
 }
 
@@ -318,6 +326,7 @@ export const useMuseionStore = create<MuseionState>()(
       projects: DEMO_PROJECTS,
       lastSavedAt: null,
       savedIndicator: false,
+      syncError: null,
 
       // ---- Auth ----
 
@@ -330,7 +339,10 @@ export const useMuseionStore = create<MuseionState>()(
       },
 
       signOut: () => {
-        set({ auth: null, studioProfile: null, isV2Hydrated: false, currentStudioId: null, currentStudioRole: null })
+        set({
+          auth: null, studioProfile: null, isV2Hydrated: false,
+          currentStudioId: null, currentStudioRole: null, hydrationError: null,
+        })
       },
 
       // ---- Projects ----
@@ -352,6 +364,7 @@ export const useMuseionStore = create<MuseionState>()(
         if (studioId) {
           projectsRemote.createProjectRemote(studioId, project).catch((err) => {
             console.error('Rollback addProject', err)
+            get().reportSyncError('addProject', err)
             set((state) => ({ projects: state.projects.filter((p) => p.id !== project.id) }))
           })
         }
@@ -523,6 +536,7 @@ export const useMuseionStore = create<MuseionState>()(
             for (const e of edges) await storyboardRemote.createEdgeRemote(studioId, newId, e)
           })().catch((err) => {
             console.error('Rollback duplicateProject', err)
+            get().reportSyncError('duplicateProject', err)
             projectsRemote.deleteProjectRemote(newId).catch(() => {})
             const newEdgeIds = new Set(edges.map((e) => e.id))
             set((st) => ({
@@ -580,7 +594,7 @@ export const useMuseionStore = create<MuseionState>()(
         }))
         const studioId = get().currentStudioId
         if (studioId) {
-          projectsRemote.updateProjectCoreRemote(id, patch).catch((err) => console.error('Sync updateProject (core)', err))
+          projectsRemote.updateProjectCoreRemote(id, patch).catch((err) => get().reportSyncError('updateProject (core)', err))
           if (patch.logline !== undefined || patch.synopsis || patch.treatment || patch.vision || patch.artisticDossier || patch.workflow) {
             projectsRemote
               .upsertProjectCanonRemote(studioId, id, {
@@ -591,7 +605,7 @@ export const useMuseionStore = create<MuseionState>()(
                 artisticDossier: patch.artisticDossier,
                 workflow: patch.workflow,
               })
-              .catch((err) => console.error('Sync updateProject (canon)', err))
+              .catch((err) => get().reportSyncError('updateProject (canon)', err))
           }
         }
         get().triggerSaveIndicator()
@@ -605,7 +619,7 @@ export const useMuseionStore = create<MuseionState>()(
         }))
         const isFavorite = get().projects.find((p) => p.id === id)?.isFavorite
         if (get().currentStudioId && isFavorite !== undefined) {
-          projectsRemote.updateProjectCoreRemote(id, { isFavorite }).catch((err) => console.error('Sync toggleFavorite', err))
+          projectsRemote.updateProjectCoreRemote(id, { isFavorite }).catch((err) => get().reportSyncError('toggleFavorite', err))
         }
       },
 
@@ -617,7 +631,7 @@ export const useMuseionStore = create<MuseionState>()(
         }))
         const isArchived = get().projects.find((p) => p.id === id)?.isArchived
         if (get().currentStudioId && isArchived !== undefined) {
-          projectsRemote.updateProjectCoreRemote(id, { isArchived }).catch((err) => console.error('Sync archiveProject', err))
+          projectsRemote.updateProjectCoreRemote(id, { isArchived }).catch((err) => get().reportSyncError('archiveProject', err))
         }
       },
 
@@ -651,8 +665,8 @@ export const useMuseionStore = create<MuseionState>()(
         }))
         const studioId = get().currentStudioId
         if (studioId) {
-          projectsRemote.addLoglineVersionRemote(studioId, projectId, version).catch((err) => console.error('Sync saveLoglineVersion', err))
-          projectsRemote.upsertProjectCanonRemote(studioId, projectId, { logline: content }).catch((err) => console.error('Sync logline', err))
+          projectsRemote.addLoglineVersionRemote(studioId, projectId, version).catch((err) => get().reportSyncError('saveLoglineVersion', err))
+          projectsRemote.upsertProjectCanonRemote(studioId, projectId, { logline: content }).catch((err) => get().reportSyncError('logline', err))
         }
         get().triggerSaveIndicator()
       },
@@ -679,7 +693,7 @@ export const useMuseionStore = create<MuseionState>()(
         }))
         const studioId = get().currentStudioId
         if (studioId) {
-          projectsRemote.replaceScriptScenesRemote(studioId, projectId, scenes).catch((err) => console.error('Sync updateScript', err))
+          projectsRemote.replaceScriptScenesRemote(studioId, projectId, scenes).catch((err) => get().reportSyncError('updateScript', err))
         }
         get().triggerSaveIndicator()
       },
@@ -702,7 +716,7 @@ export const useMuseionStore = create<MuseionState>()(
         }))
         const studioId = get().currentStudioId
         if (studioId) {
-          projectsRemote.upsertCharacterRemote(studioId, projectId, character).catch((err) => console.error('Sync updateCharacter', err))
+          projectsRemote.upsertCharacterRemote(studioId, projectId, character).catch((err) => get().reportSyncError('updateCharacter', err))
         }
         get().triggerSaveIndicator()
       },
@@ -722,6 +736,7 @@ export const useMuseionStore = create<MuseionState>()(
         if (studioId) {
           projectsRemote.upsertCharacterRemote(studioId, projectId, character).catch((err) => {
             console.error('Rollback addCharacter', err)
+            get().reportSyncError('addCharacter', err)
             set((state) => ({
               projects: state.projects.map((p) =>
                 p.id === projectId ? { ...p, characters: p.characters.filter((c) => c.id !== character.id) } : p
@@ -741,7 +756,7 @@ export const useMuseionStore = create<MuseionState>()(
           ),
         }))
         if (get().currentStudioId) {
-          projectsRemote.deleteCharacterRemote(characterId).catch((err) => console.error('Sync removeCharacter', err))
+          projectsRemote.deleteCharacterRemote(characterId).catch((err) => get().reportSyncError('removeCharacter', err))
         }
       },
 
@@ -765,7 +780,7 @@ export const useMuseionStore = create<MuseionState>()(
           const studioId = get().currentStudioId
           const artisticDossier = get().projects.find((p) => p.id === projectId)?.artisticDossier
           if (studioId && artisticDossier) {
-            projectsRemote.upsertProjectCanonRemote(studioId, projectId, { artisticDossier }).catch((err) => console.error('Sync updateArtisticDossier', err))
+            projectsRemote.upsertProjectCanonRemote(studioId, projectId, { artisticDossier }).catch((err) => get().reportSyncError('updateArtisticDossier', err))
           }
         }
         get().triggerSaveIndicator()
@@ -791,7 +806,7 @@ export const useMuseionStore = create<MuseionState>()(
           const studioId = get().currentStudioId
           const vision = get().projects.find((p) => p.id === projectId)?.vision
           if (studioId && vision) {
-            projectsRemote.upsertProjectCanonRemote(studioId, projectId, { vision }).catch((err) => console.error('Sync updateVision', err))
+            projectsRemote.upsertProjectCanonRemote(studioId, projectId, { vision }).catch((err) => get().reportSyncError('updateVision', err))
           }
         }
         get().triggerSaveIndicator()
@@ -817,7 +832,7 @@ export const useMuseionStore = create<MuseionState>()(
           const studioId = get().currentStudioId
           const synopsis = get().projects.find((p) => p.id === projectId)?.synopsis
           if (studioId && synopsis) {
-            projectsRemote.upsertProjectCanonRemote(studioId, projectId, { synopsis }).catch((err) => console.error('Sync updateSynopsis', err))
+            projectsRemote.upsertProjectCanonRemote(studioId, projectId, { synopsis }).catch((err) => get().reportSyncError('updateSynopsis', err))
           }
         }
         get().triggerSaveIndicator()
@@ -843,7 +858,7 @@ export const useMuseionStore = create<MuseionState>()(
           const studioId = get().currentStudioId
           const treatment = get().projects.find((p) => p.id === projectId)?.treatment
           if (studioId && treatment) {
-            projectsRemote.upsertProjectCanonRemote(studioId, projectId, { treatment }).catch((err) => console.error('Sync updateTreatment', err))
+            projectsRemote.upsertProjectCanonRemote(studioId, projectId, { treatment }).catch((err) => get().reportSyncError('updateTreatment', err))
           }
         }
         get().triggerSaveIndicator()
@@ -934,6 +949,12 @@ export const useMuseionStore = create<MuseionState>()(
         setTimeout(() => set({ savedIndicator: false }), 2000)
       },
 
+      reportSyncError: (context, err) => {
+        console.error(`Sync ${context}`, err)
+        set({ syncError: context })
+      },
+      dismissSyncError: () => set({ syncError: null }),
+
       // ==========================================================
       // Sprint 2 — Storyboard partagé (vue classique + canvas)
       // ==========================================================
@@ -966,46 +987,60 @@ export const useMuseionStore = create<MuseionState>()(
       isV2Hydrated: false,
       currentStudioId: null,
       currentStudioRole: null,
+      hydrationError: null,
       initV2: async () => {
         // Once hydrated with no studio (e.g. ran before sign-in completed),
         // allow a retry — only a *successful* studio load short-circuits.
         if (get().isV2Hydrated && get().currentStudioId) return;
 
-        const studio = await resolveCurrentStudio();
-        if (!studio) {
-          set({ isV2Hydrated: true, currentStudioId: null, currentStudioRole: null });
-          return;
-        }
+        try {
+          const studio = await resolveCurrentStudio();
+          if (!studio) {
+            set({ isV2Hydrated: true, currentStudioId: null, currentStudioRole: null, hydrationError: null });
+            return;
+          }
 
-        let workspace = await fetchWorkspace(studio.id);
-        if (workspace.projects.length === 0) {
-          await bootstrapDemoData(studio.id);
-          workspace = await fetchWorkspace(studio.id);
-        }
+          let workspace = await fetchWorkspace(studio.id);
+          if (workspace.projects.length === 0) {
+            await bootstrapDemoData(studio.id);
+            workspace = await fetchWorkspace(studio.id);
+          }
 
-        set({
-          isV2Hydrated: true,
-          currentStudioId: studio.id,
-          currentStudioRole: studio.role,
-          projects: workspace.projects,
-          assets: workspace.assets,
-          assetJournal: workspace.assetJournal,
-          productionJobs: workspace.productionJobs,
-          writingMissions: workspace.writingMissions,
-          writingMessages: workspace.writingMessages,
-          writingVariants: workspace.writingVariants,
-          reviewComments: workspace.reviewComments,
-          reviewChecklists: workspace.reviewChecklists,
-          deliverablePackages: workspace.deliverablePackages,
-          assetCollections: workspace.assetCollections,
-          sequences: workspace.sequences,
-          scenes: workspace.scenes,
-          shots: workspace.shots,
-          edges: workspace.edges,
-          traces: workspace.projects.flatMap((p) => p.traces),
-          selectedSceneId: workspace.scenes[0]?.id ?? null,
-          selectedShotId: workspace.shots[0]?.id ?? null,
-        });
+          set({
+            isV2Hydrated: true,
+            currentStudioId: studio.id,
+            currentStudioRole: studio.role,
+            hydrationError: null,
+            projects: workspace.projects,
+            assets: workspace.assets,
+            assetJournal: workspace.assetJournal,
+            productionJobs: workspace.productionJobs,
+            writingMissions: workspace.writingMissions,
+            writingMessages: workspace.writingMessages,
+            writingVariants: workspace.writingVariants,
+            reviewComments: workspace.reviewComments,
+            reviewChecklists: workspace.reviewChecklists,
+            deliverablePackages: workspace.deliverablePackages,
+            assetCollections: workspace.assetCollections,
+            sequences: workspace.sequences,
+            scenes: workspace.scenes,
+            shots: workspace.shots,
+            edges: workspace.edges,
+            traces: workspace.projects.flatMap((p) => p.traces),
+            selectedSceneId: workspace.scenes[0]?.id ?? null,
+            selectedShotId: workspace.shots[0]?.id ?? null,
+          });
+        } catch (err) {
+          // A failed load must never leave the UI stuck on the loading
+          // spinner forever — surface it so AppShell can offer a retry.
+          console.error('[initV2] Échec du chargement du studio', err);
+          set({
+            isV2Hydrated: true,
+            currentStudioId: null,
+            currentStudioRole: null,
+            hydrationError: err instanceof Error ? err.message : 'Impossible de charger les données du studio.',
+          });
+        }
       },
 
       // ---- Auth ----
@@ -1027,6 +1062,7 @@ export const useMuseionStore = create<MuseionState>()(
         if (studioId) {
           storyboardRemote.createSequenceRemote(studioId, sequence).catch((err) => {
             console.error('Rollback addSequence', err)
+            get().reportSyncError('addSequence', err)
             set((state) => ({ sequences: state.sequences.filter((q) => q.id !== sequence.id) }))
           })
         }
@@ -1039,7 +1075,7 @@ export const useMuseionStore = create<MuseionState>()(
           sequences: state.sequences.map((q) => (q.id === sequenceId ? { ...q, ...patch } : q)),
         }))
         if (get().currentStudioId) {
-          storyboardRemote.updateSequenceRemote(sequenceId, patch).catch((err) => console.error('Sync updateSequence', err))
+          storyboardRemote.updateSequenceRemote(sequenceId, patch).catch((err) => get().reportSyncError('updateSequence', err))
         }
         get().triggerSaveIndicator()
       },
@@ -1068,7 +1104,7 @@ export const useMuseionStore = create<MuseionState>()(
           ;(async () => {
             for (const sceneId of sceneIds) await storyboardRemote.deleteSceneRemote(sceneId)
             await storyboardRemote.deleteSequenceRemote(sequenceId)
-          })().catch((err) => console.error('Sync removeSequence', err))
+          })().catch((err) => get().reportSyncError('removeSequence', err))
         }
         get().triggerSaveIndicator()
       },
@@ -1113,6 +1149,7 @@ export const useMuseionStore = create<MuseionState>()(
         if (studioId) {
           storyboardRemote.createSceneRemote(studioId, scene).catch((err) => {
             console.error('Rollback addScene', err)
+            get().reportSyncError('addScene', err)
             set((state) => ({ scenes: state.scenes.filter((s) => s.id !== scene.id) }))
           })
         }
@@ -1125,7 +1162,7 @@ export const useMuseionStore = create<MuseionState>()(
           scenes: state.scenes.map((s) => (s.id === sceneId ? { ...s, ...patch } : s)),
         }))
         if (get().currentStudioId) {
-          storyboardRemote.updateSceneRemote(sceneId, patch).catch((err) => console.error('Sync updateScene', err))
+          storyboardRemote.updateSceneRemote(sceneId, patch).catch((err) => get().reportSyncError('updateScene', err))
         }
         get().triggerSaveIndicator()
       },
@@ -1144,7 +1181,7 @@ export const useMuseionStore = create<MuseionState>()(
           }
         })
         if (get().currentStudioId) {
-          storyboardRemote.deleteSceneRemote(sceneId).catch((err) => console.error('Sync removeScene', err))
+          storyboardRemote.deleteSceneRemote(sceneId).catch((err) => get().reportSyncError('removeScene', err))
         }
         get().triggerSaveIndicator()
       },
@@ -1177,7 +1214,7 @@ export const useMuseionStore = create<MuseionState>()(
             const bumped = reordered.filter((s) => s.sequenceId === source.sequenceId && s.order > source.order)
             for (const s of bumped) await storyboardRemote.updateSceneRemote(s.id, { order: s.order })
             await storyboardRemote.createSceneRemote(studioId, copy)
-          })().catch((err) => console.error('Sync duplicateScene', err))
+          })().catch((err) => get().reportSyncError('duplicateScene', err))
         }
         get().triggerSaveIndicator()
         return copy
@@ -1192,7 +1229,7 @@ export const useMuseionStore = create<MuseionState>()(
           ),
         }))
         if (get().currentStudioId) {
-          storyboardRemote.updateSceneRemote(sceneId, { sequenceId, order }).catch((err) => console.error('Sync moveSceneToSequence', err))
+          storyboardRemote.updateSceneRemote(sceneId, { sequenceId, order }).catch((err) => get().reportSyncError('moveSceneToSequence', err))
         }
         get().triggerSaveIndicator()
       },
@@ -1207,7 +1244,7 @@ export const useMuseionStore = create<MuseionState>()(
         }))
         if (get().currentStudioId) {
           orderedSceneIds.forEach((sceneId, index) => {
-            storyboardRemote.updateSceneRemote(sceneId, { order: index }).catch((err) => console.error('Sync reorderScenes', err))
+            storyboardRemote.updateSceneRemote(sceneId, { order: index }).catch((err) => get().reportSyncError('reorderScenes', err))
           })
         }
         get().triggerSaveIndicator()
@@ -1222,7 +1259,7 @@ export const useMuseionStore = create<MuseionState>()(
           scenes: state.scenes.map((s) => (s.id === sceneId ? { ...s, canvasPosition: position } : s)),
         }))
         if (get().currentStudioId) {
-          storyboardRemote.updateSceneRemote(sceneId, { canvasPosition: position }).catch((err) => console.error('Sync setSceneCanvasPosition', err))
+          storyboardRemote.updateSceneRemote(sceneId, { canvasPosition: position }).catch((err) => get().reportSyncError('setSceneCanvasPosition', err))
         }
       },
 
@@ -1239,7 +1276,7 @@ export const useMuseionStore = create<MuseionState>()(
         }))
         if (get().currentStudioId) {
           positioned.forEach((scene) => {
-            storyboardRemote.updateSceneRemote(scene.id, { canvasPosition: scene.canvasPosition }).catch((err) => console.error('Sync resetCanvasLayout', err))
+            storyboardRemote.updateSceneRemote(scene.id, { canvasPosition: scene.canvasPosition }).catch((err) => get().reportSyncError('resetCanvasLayout', err))
           })
         }
         get().triggerSaveIndicator()
@@ -1261,6 +1298,7 @@ export const useMuseionStore = create<MuseionState>()(
         if (studioId && projectId) {
           storyboardRemote.createEdgeRemote(studioId, projectId, edge).catch((err) => {
             console.error('Rollback addEdge', err)
+            get().reportSyncError('addEdge', err)
             set((s) => ({ edges: s.edges.filter((e) => e.id !== edge.id) }))
           })
         }
@@ -1272,7 +1310,7 @@ export const useMuseionStore = create<MuseionState>()(
         // Supprimer une connexion ne supprime jamais les scènes reliées
         set((state) => ({ edges: state.edges.filter((e) => e.id !== edgeId) }))
         if (get().currentStudioId) {
-          storyboardRemote.deleteEdgeRemote(edgeId).catch((err) => console.error('Sync removeEdge', err))
+          storyboardRemote.deleteEdgeRemote(edgeId).catch((err) => get().reportSyncError('removeEdge', err))
         }
         get().triggerSaveIndicator()
       },
@@ -1320,6 +1358,7 @@ export const useMuseionStore = create<MuseionState>()(
         if (studioId) {
           storyboardRemote.createShotRemote(studioId, shot).catch((err) => {
             console.error('Rollback addShot', err)
+            get().reportSyncError('addShot', err)
             set((s) => ({ shots: s.shots.filter((sh) => sh.id !== shot.id) }))
           })
         }
@@ -1332,7 +1371,7 @@ export const useMuseionStore = create<MuseionState>()(
           shots: state.shots.map((s) => (s.id === shotId ? { ...s, ...patch } : s)),
         }))
         if (get().currentStudioId) {
-          storyboardRemote.updateShotRemote(shotId, patch).catch((err) => console.error('Sync updateShot', err))
+          storyboardRemote.updateShotRemote(shotId, patch).catch((err) => get().reportSyncError('updateShot', err))
         }
         get().triggerSaveIndicator()
       },
@@ -1346,7 +1385,7 @@ export const useMuseionStore = create<MuseionState>()(
           }
         })
         if (get().currentStudioId) {
-          storyboardRemote.deleteShotRemote(shotId).catch((err) => console.error('Sync removeShot', err))
+          storyboardRemote.deleteShotRemote(shotId).catch((err) => get().reportSyncError('removeShot', err))
         }
         get().triggerSaveIndicator()
       },
@@ -1368,6 +1407,7 @@ export const useMuseionStore = create<MuseionState>()(
         if (studioId) {
           storyboardRemote.createShotRemote(studioId, copy).catch((err) => {
             console.error('Rollback duplicateShot', err)
+            get().reportSyncError('duplicateShot', err)
             set((s) => ({ shots: s.shots.filter((sh) => sh.id !== copy.id) }))
           })
         }
@@ -1380,7 +1420,7 @@ export const useMuseionStore = create<MuseionState>()(
           shots: state.shots.map((s) => (s.id === shotId ? { ...s, validated } : s)),
         }))
         if (get().currentStudioId) {
-          storyboardRemote.updateShotRemote(shotId, { validated }).catch((err) => console.error('Sync setShotValidated', err))
+          storyboardRemote.updateShotRemote(shotId, { validated }).catch((err) => get().reportSyncError('setShotValidated', err))
         }
         get().triggerSaveIndicator()
       },
@@ -1395,6 +1435,7 @@ export const useMuseionStore = create<MuseionState>()(
         if (studioId) {
           assetsRemote.createAssetRemote(studioId, asset).catch((err) => {
             console.error('Rollback addAsset', err)
+            get().reportSyncError('addAsset', err)
             set((state) => ({ assets: state.assets.filter((a) => a.id !== asset.id) }))
           })
         }
@@ -1428,8 +1469,8 @@ export const useMuseionStore = create<MuseionState>()(
         })
         const studioId = get().currentStudioId
         if (studioId) {
-          assetsRemote.createAssetRemote(studioId, asset).catch((err) => console.error('Sync registerPreview (asset)', err))
-          assetsRemote.addJournalEntryRemote(studioId, context.projectId, entry).catch((err) => console.error('Sync registerPreview (journal)', err))
+          assetsRemote.createAssetRemote(studioId, asset).catch((err) => get().reportSyncError('registerPreview (asset)', err))
+          assetsRemote.addJournalEntryRemote(studioId, context.projectId, entry).catch((err) => get().reportSyncError('registerPreview (journal)', err))
         }
         get().triggerSaveIndicator()
         return asset
@@ -1471,9 +1512,9 @@ export const useMuseionStore = create<MuseionState>()(
           assetsRemote.updateAssetRemote(assetId, {
             status,
             expiresAt: status === 'ephemeral' ? asset.expiresAt : undefined,
-          }).catch((err) => console.error('Sync setAssetStatus', err))
-          assetsRemote.addAssetVersionRemote(studioId, asset.projectId, assetId, newVersion).catch((err) => console.error('Sync setAssetStatus (version)', err))
-          assetsRemote.addJournalEntryRemote(studioId, asset.projectId, entry).catch((err) => console.error('Sync setAssetStatus (journal)', err))
+          }).catch((err) => get().reportSyncError('setAssetStatus', err))
+          assetsRemote.addAssetVersionRemote(studioId, asset.projectId, assetId, newVersion).catch((err) => get().reportSyncError('setAssetStatus (version)', err))
+          assetsRemote.addJournalEntryRemote(studioId, asset.projectId, entry).catch((err) => get().reportSyncError('setAssetStatus (journal)', err))
         }
         get().triggerSaveIndicator()
         return check
@@ -1518,9 +1559,9 @@ export const useMuseionStore = create<MuseionState>()(
         })
         const studioId = get().currentStudioId
         if (studioId) {
-          assetsRemote.updateAssetRemote(assetId, { status: 'approved', expiresAt: undefined }).catch((err) => console.error('Sync restoreAndApproveAsset', err))
-          assetsRemote.addAssetVersionRemote(studioId, asset.projectId, assetId, newVersion).catch((err) => console.error('Sync restoreAndApproveAsset (version)', err))
-          assetsRemote.addJournalEntryRemote(studioId, asset.projectId, entry).catch((err) => console.error('Sync restoreAndApproveAsset (journal)', err))
+          assetsRemote.updateAssetRemote(assetId, { status: 'approved', expiresAt: undefined }).catch((err) => get().reportSyncError('restoreAndApproveAsset', err))
+          assetsRemote.addAssetVersionRemote(studioId, asset.projectId, assetId, newVersion).catch((err) => get().reportSyncError('restoreAndApproveAsset (version)', err))
+          assetsRemote.addJournalEntryRemote(studioId, asset.projectId, entry).catch((err) => get().reportSyncError('restoreAndApproveAsset (journal)', err))
         }
         get().triggerSaveIndicator()
         return check
@@ -1532,8 +1573,8 @@ export const useMuseionStore = create<MuseionState>()(
           scenes: state.scenes.map((s) => (s.id === sceneId ? { ...s, assetId } : s)),
         }))
         if (get().currentStudioId) {
-          assetsRemote.updateAssetRemote(assetId, { sceneId }).catch((err) => console.error('Sync attachAssetToScene (asset)', err))
-          storyboardRemote.updateSceneRemote(sceneId, { assetId }).catch((err) => console.error('Sync attachAssetToScene (scene)', err))
+          assetsRemote.updateAssetRemote(assetId, { sceneId }).catch((err) => get().reportSyncError('attachAssetToScene (asset)', err))
+          storyboardRemote.updateSceneRemote(sceneId, { assetId }).catch((err) => get().reportSyncError('attachAssetToScene (scene)', err))
         }
         get().triggerSaveIndicator()
       },
@@ -1543,7 +1584,7 @@ export const useMuseionStore = create<MuseionState>()(
           shots: state.shots.map((s) => (s.id === shotId ? { ...s, assetId } : s)),
         }))
         if (get().currentStudioId) {
-          storyboardRemote.updateShotRemote(shotId, { assetId }).catch((err) => console.error('Sync attachAssetToShot', err))
+          storyboardRemote.updateShotRemote(shotId, { assetId }).catch((err) => get().reportSyncError('attachAssetToShot', err))
         }
         get().triggerSaveIndicator()
       },
@@ -1555,9 +1596,9 @@ export const useMuseionStore = create<MuseionState>()(
           assets: state.assets.map((a) => (a.sceneId === sceneId ? { ...a, sceneId: undefined } : a)),
         }))
         if (get().currentStudioId) {
-          storyboardRemote.updateSceneRemote(sceneId, { assetId: undefined }).catch((err) => console.error('Sync detachAssetFromScene (scene)', err))
+          storyboardRemote.updateSceneRemote(sceneId, { assetId: undefined }).catch((err) => get().reportSyncError('detachAssetFromScene (scene)', err))
           detachedAssetIds.forEach((assetId) => {
-            assetsRemote.updateAssetRemote(assetId, { sceneId: undefined }).catch((err) => console.error('Sync detachAssetFromScene (asset)', err))
+            assetsRemote.updateAssetRemote(assetId, { sceneId: undefined }).catch((err) => get().reportSyncError('detachAssetFromScene (asset)', err))
           })
         }
         get().triggerSaveIndicator()
@@ -1573,6 +1614,7 @@ export const useMuseionStore = create<MuseionState>()(
         if (studioId) {
           sprint4Remote.createMissionRemote(studioId, mission).catch((err) => {
             console.error('Rollback addWritingMission', err)
+            get().reportSyncError('addWritingMission', err)
             set((state) => ({ writingMissions: state.writingMissions.filter((m) => m.id !== mission.id) }))
           })
         }
@@ -1587,7 +1629,7 @@ export const useMuseionStore = create<MuseionState>()(
         const studioId = get().currentStudioId
         const mission = get().writingMissions.find((m) => m.id === missionId)
         if (studioId && mission) {
-          sprint4Remote.createMessageRemote(studioId, mission.projectId, message).catch((err) => console.error('Sync addWritingMessage', err))
+          sprint4Remote.createMessageRemote(studioId, mission.projectId, message).catch((err) => get().reportSyncError('addWritingMessage', err))
         }
 
         get().triggerSaveIndicator()
@@ -1599,7 +1641,7 @@ export const useMuseionStore = create<MuseionState>()(
         const studioId = get().currentStudioId
         const mission = get().writingMissions.find((m) => m.id === missionId)
         if (studioId && mission) {
-          sprint4Remote.createVariantRemote(studioId, mission.projectId, variant).catch((err) => console.error('Sync addWritingVariant', err))
+          sprint4Remote.createVariantRemote(studioId, mission.projectId, variant).catch((err) => get().reportSyncError('addWritingVariant', err))
         }
         get().triggerSaveIndicator()
         return variant
@@ -1619,7 +1661,7 @@ export const useMuseionStore = create<MuseionState>()(
           }
         })
         if (get().currentStudioId && missionId) {
-          sprint4Remote.selectVariantRemote(missionId, variantId).catch((err) => console.error('Sync selectWritingVariant', err))
+          sprint4Remote.selectVariantRemote(missionId, variantId).catch((err) => get().reportSyncError('selectWritingVariant', err))
         }
         get().triggerSaveIndicator()
       },
@@ -1630,7 +1672,7 @@ export const useMuseionStore = create<MuseionState>()(
           writingVariants: state.writingVariants.filter(v => v.missionId !== missionId)
         }))
         if (get().currentStudioId) {
-          sprint4Remote.deleteMissionRemote(missionId).catch((err) => console.error('Sync removeWritingMission', err))
+          sprint4Remote.deleteMissionRemote(missionId).catch((err) => get().reportSyncError('removeWritingMission', err))
         }
         get().triggerSaveIndicator()
       },
@@ -1644,6 +1686,7 @@ export const useMuseionStore = create<MuseionState>()(
         if (studioId) {
           sprint4Remote.createJobRemote(studioId, newJob).catch((err) => {
             console.error('Rollback addProductionJob', err)
+            get().reportSyncError('addProductionJob', err)
             set((state) => ({ productionJobs: state.productionJobs.filter(j => j.id !== newJob.id) }))
           })
         }
@@ -1657,7 +1700,7 @@ export const useMuseionStore = create<MuseionState>()(
           productionJobs: state.productionJobs.map((j) => (j.id === jobId ? { ...j, ...patch, updatedAt: now } : j)),
         }))
         if (get().currentStudioId) {
-          sprint4Remote.updateJobRemote(jobId, patch).catch((err) => console.error('Sync updateProductionJob', err))
+          sprint4Remote.updateJobRemote(jobId, patch).catch((err) => get().reportSyncError('updateProductionJob', err))
         }
         get().triggerSaveIndicator()
       },
@@ -1667,7 +1710,7 @@ export const useMuseionStore = create<MuseionState>()(
           productionJobs: state.productionJobs.map((j) => (j.id === jobId ? { ...j, status: 'running', startedAt: now, updatedAt: now } : j)),
         }))
         if (get().currentStudioId) {
-          sprint4Remote.updateJobRemote(jobId, { status: 'running', startedAt: now }).catch((err) => console.error('Sync startProductionJob', err))
+          sprint4Remote.updateJobRemote(jobId, { status: 'running', startedAt: now }).catch((err) => get().reportSyncError('startProductionJob', err))
         }
         get().triggerSaveIndicator()
       },
@@ -1677,7 +1720,7 @@ export const useMuseionStore = create<MuseionState>()(
           productionJobs: state.productionJobs.map((j) => (j.id === jobId ? { ...j, status: 'review_required', resultAssetId, completedAt: now, updatedAt: now } : j)),
         }))
         if (get().currentStudioId) {
-          sprint4Remote.updateJobRemote(jobId, { status: 'review_required', resultAssetId, completedAt: now }).catch((err) => console.error('Sync completeProductionJob', err))
+          sprint4Remote.updateJobRemote(jobId, { status: 'review_required', resultAssetId, completedAt: now }).catch((err) => get().reportSyncError('completeProductionJob', err))
         }
         get().triggerSaveIndicator()
       },
@@ -1687,7 +1730,7 @@ export const useMuseionStore = create<MuseionState>()(
           productionJobs: state.productionJobs.map((j) => (j.id === jobId ? { ...j, status: 'approved', updatedAt: now } : j)),
         }))
         if (get().currentStudioId) {
-          sprint4Remote.updateJobRemote(jobId, { status: 'approved' }).catch((err) => console.error('Sync approveProductionJob', err))
+          sprint4Remote.updateJobRemote(jobId, { status: 'approved' }).catch((err) => get().reportSyncError('approveProductionJob', err))
         }
         get().triggerSaveIndicator()
       },
@@ -1697,7 +1740,7 @@ export const useMuseionStore = create<MuseionState>()(
           productionJobs: state.productionJobs.map((j) => (j.id === jobId ? { ...j, status: 'failed', error, updatedAt: now } : j)),
         }))
         if (get().currentStudioId) {
-          sprint4Remote.updateJobRemote(jobId, { status: 'failed', error }).catch((err) => console.error('Sync failProductionJob', err))
+          sprint4Remote.updateJobRemote(jobId, { status: 'failed', error }).catch((err) => get().reportSyncError('failProductionJob', err))
         }
         get().triggerSaveIndicator()
       },
@@ -1707,7 +1750,7 @@ export const useMuseionStore = create<MuseionState>()(
           productionJobs: state.productionJobs.map((j) => (j.id === jobId ? { ...j, status: 'cancelled', updatedAt: now } : j)),
         }))
         if (get().currentStudioId) {
-          sprint4Remote.updateJobRemote(jobId, { status: 'cancelled' }).catch((err) => console.error('Sync cancelProductionJob', err))
+          sprint4Remote.updateJobRemote(jobId, { status: 'cancelled' }).catch((err) => get().reportSyncError('cancelProductionJob', err))
         }
         get().triggerSaveIndicator()
       },
@@ -1733,6 +1776,7 @@ export const useMuseionStore = create<MuseionState>()(
         if (studioId) {
           sprint4Remote.createReviewCommentRemote(studioId, comment).catch((err) => {
             console.error('Rollback addReviewComment', err)
+            get().reportSyncError('addReviewComment', err)
             set((state) => ({ reviewComments: state.reviewComments.filter((c) => c.id !== comment.id) }))
           })
         }
@@ -1742,7 +1786,7 @@ export const useMuseionStore = create<MuseionState>()(
       removeReviewComment: (commentId) => {
         set((state) => ({ reviewComments: state.reviewComments.filter(c => c.id !== commentId) }))
         if (get().currentStudioId) {
-          sprint4Remote.deleteReviewCommentRemote(commentId).catch((err) => console.error('Sync removeReviewComment', err))
+          sprint4Remote.deleteReviewCommentRemote(commentId).catch((err) => get().reportSyncError('removeReviewComment', err))
         }
         get().triggerSaveIndicator()
       },
@@ -1753,6 +1797,7 @@ export const useMuseionStore = create<MuseionState>()(
         if (studioId) {
           sprint4Remote.createChecklistItemRemote(studioId, checklist).catch((err) => {
             console.error('Rollback addReviewChecklist', err)
+            get().reportSyncError('addReviewChecklist', err)
             set((state) => ({ reviewChecklists: state.reviewChecklists.filter((c) => c.id !== checklist.id) }))
           })
         }
@@ -1769,7 +1814,7 @@ export const useMuseionStore = create<MuseionState>()(
           }),
         }))
         if (get().currentStudioId) {
-          sprint4Remote.toggleChecklistItemRemote(checklistId, nextChecked).catch((err) => console.error('Sync toggleReviewChecklist', err))
+          sprint4Remote.toggleChecklistItemRemote(checklistId, nextChecked).catch((err) => get().reportSyncError('toggleReviewChecklist', err))
         }
         get().triggerSaveIndicator()
       },
@@ -1781,6 +1826,7 @@ export const useMuseionStore = create<MuseionState>()(
         if (studioId) {
           sprint4Remote.createDeliverableRemote(studioId, pack).catch((err) => {
             console.error('Rollback createDeliverablePackage', err)
+            get().reportSyncError('createDeliverablePackage', err)
             set((state) => ({ deliverablePackages: state.deliverablePackages.filter((p) => p.id !== pack.id) }))
           })
         }
@@ -1793,7 +1839,7 @@ export const useMuseionStore = create<MuseionState>()(
         }))
         const sections = get().deliverablePackages.find((p) => p.id === packageId)?.sections
         if (get().currentStudioId && sections) {
-          sprint4Remote.updateDeliverableRemote(packageId, { sections }).catch((err) => console.error('Sync updateDeliverableSection', err))
+          sprint4Remote.updateDeliverableRemote(packageId, { sections }).catch((err) => get().reportSyncError('updateDeliverableSection', err))
         }
         get().triggerSaveIndicator()
       },
@@ -1803,7 +1849,7 @@ export const useMuseionStore = create<MuseionState>()(
           deliverablePackages: state.deliverablePackages.map((p) => (p.id === packageId ? { ...p, exportedAt } : p)),
         }))
         if (get().currentStudioId) {
-          sprint4Remote.updateDeliverableRemote(packageId, { exportedAt }).catch((err) => console.error('Sync markDeliverableExported', err))
+          sprint4Remote.updateDeliverableRemote(packageId, { exportedAt }).catch((err) => get().reportSyncError('markDeliverableExported', err))
         }
         get().triggerSaveIndicator()
       },
@@ -1815,6 +1861,7 @@ export const useMuseionStore = create<MuseionState>()(
         if (studioId) {
           sprint4Remote.createAssetCollectionRemote(studioId, collection).catch((err) => {
             console.error('Rollback addAssetCollection', err)
+            get().reportSyncError('addAssetCollection', err)
             set((state) => ({ assetCollections: state.assetCollections.filter((c) => c.id !== collection.id) }))
           })
         }
@@ -1827,7 +1874,7 @@ export const useMuseionStore = create<MuseionState>()(
         }))
         const assetIds = get().assetCollections.find((c) => c.id === collectionId)?.assetIds
         if (get().currentStudioId && assetIds) {
-          sprint4Remote.updateAssetCollectionRemote(collectionId, assetIds).catch((err) => console.error('Sync addAssetToCollection', err))
+          sprint4Remote.updateAssetCollectionRemote(collectionId, assetIds).catch((err) => get().reportSyncError('addAssetToCollection', err))
         }
         get().triggerSaveIndicator()
       },
@@ -1837,14 +1884,14 @@ export const useMuseionStore = create<MuseionState>()(
         }))
         const assetIds = get().assetCollections.find((c) => c.id === collectionId)?.assetIds
         if (get().currentStudioId && assetIds) {
-          sprint4Remote.updateAssetCollectionRemote(collectionId, assetIds).catch((err) => console.error('Sync removeAssetFromCollection', err))
+          sprint4Remote.updateAssetCollectionRemote(collectionId, assetIds).catch((err) => get().reportSyncError('removeAssetFromCollection', err))
         }
         get().triggerSaveIndicator()
       },
       removeAssetCollection: (collectionId) => {
         set((state) => ({ assetCollections: state.assetCollections.filter(c => c.id !== collectionId) }))
         if (get().currentStudioId) {
-          sprint4Remote.deleteAssetCollectionRemote(collectionId).catch((err) => console.error('Sync removeAssetCollection', err))
+          sprint4Remote.deleteAssetCollectionRemote(collectionId).catch((err) => get().reportSyncError('removeAssetCollection', err))
         }
         get().triggerSaveIndicator()
       }

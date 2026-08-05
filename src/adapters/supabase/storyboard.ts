@@ -12,12 +12,15 @@ function supabase() {
 export async function fetchStoryboard(studioId: string): Promise<{
   sequences: Sequence[]; scenes: StoryboardScene[]; shots: Shot[]; edges: StoryboardEdge[]
 }> {
-  const [sequencesRes, scenesRes, shotsRes, edgesRes] = await Promise.all([
+  const results = await Promise.all([
     supabase().from('sequences').select('*').eq('studio_id', studioId).order('order_index', { ascending: true }),
     supabase().from('storyboard_scenes').select('*').eq('studio_id', studioId).order('order_index', { ascending: true }),
     supabase().from('shots').select('*').eq('studio_id', studioId).order('order_index', { ascending: true }),
     supabase().from('storyboard_edges').select('*').eq('studio_id', studioId),
   ])
+  const failed = results.find((r) => r.error)
+  if (failed?.error) throw failed.error
+  const [sequencesRes, scenesRes, shotsRes, edgesRes] = results
 
   return {
     sequences: (sequencesRes.data ?? []).map(sequenceFromRow),

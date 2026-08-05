@@ -6,12 +6,15 @@ function supabase() {
 }
 
 export async function fetchAssets(studioId: string): Promise<{ assets: Asset[]; journal: AssetJournalEntry[] }> {
-  const [assetsRes, versionsRes, relationsRes, journalRes] = await Promise.all([
+  const results = await Promise.all([
     supabase().from('assets').select('*').eq('studio_id', studioId).order('created_at', { ascending: false }),
     supabase().from('asset_versions').select('*').eq('studio_id', studioId),
     supabase().from('asset_relations').select('*').eq('studio_id', studioId),
     supabase().from('asset_journal_entries').select('*').eq('studio_id', studioId).order('decided_at', { ascending: false }).limit(200),
   ])
+  const failed = results.find((r) => r.error)
+  if (failed?.error) throw failed.error
+  const [assetsRes, versionsRes, relationsRes, journalRes] = results
 
   const versionsByAsset = new Map<string, unknown[]>()
   for (const row of versionsRes.data ?? []) {
