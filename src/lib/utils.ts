@@ -30,8 +30,14 @@ export function countWords(text: string): number {
   return text.trim() === '' ? 0 : text.trim().split(/\s+/).length
 }
 
+/**
+ * Every entity id in the app ends up as a Postgres `uuid` primary key once
+ * synced to Supabase — this must always return a real UUID, never a
+ * prefixed or timestamp-based string, or the remote write fails silently
+ * behind the optimistic local update.
+ */
 export function generateId(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+  return crypto.randomUUID()
 }
 
 export function slugify(text: string): string {

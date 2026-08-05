@@ -24,8 +24,9 @@ beforeEach(() => {
 })
 
 describe('Storyboard — structure de démonstration', () => {
-  it('expose cinq séquences et au moins huit scènes', () => {
-    expect(store().sequences).toHaveLength(5)
+  it('expose cinq séquences et au moins huit scènes pour Gilgamesh', () => {
+    const gilgameshSequences = store().sequences.filter((s) => s.projectId === 'proj-gilgamesh')
+    expect(gilgameshSequences).toHaveLength(5)
     expect(store().scenes.length).toBeGreaterThanOrEqual(8)
     expect(sequenceScenes(SEQ_1).length).toBeGreaterThanOrEqual(8)
   })

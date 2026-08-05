@@ -64,6 +64,24 @@ export const DEMO_SEQUENCES: Sequence[] = [
     color: '#5a5c5e',
     order: 4,
   },
+  {
+    id: 'seq-akh-01',
+    projectId: 'proj-akhenaton',
+    number: 1,
+    title: 'Le culte du disque',
+    description: "La cérémonie qui fonde le culte d'Aton, le doute du pharaon, les ruines du règne.",
+    color: '#c9a15a',
+    order: 0,
+  },
+  {
+    id: 'seq-alex-01',
+    projectId: 'proj-alexandre',
+    number: 1,
+    title: 'La conquête et le doute',
+    description: "La charge qui ne s'arrête jamais, l'entrée dans Babylone, la nuit du général seul.",
+    color: '#8a2f2f',
+    order: 0,
+  },
 ]
 
 // ------------------------------------------------------------
@@ -1110,7 +1128,7 @@ const REAL_IMAGES: Record<string, string> = {
   'asset-decor-uruk-glory': '/demo-gilgamesh/scene-uruk-glory.png',
 }
 
-export const DEMO_ASSETS: Asset[] = ASSET_SEEDS.map((seed) => {
+const DEMO_ASSETS_GILGAMESH: Asset[] = ASSET_SEEDS.map((seed) => {
   const createdAt = iso(seed.createdDaysAgo)
   const url = REAL_IMAGES[seed.id] || buildMockPreviewDataUri({
     subject: seed.subject,
@@ -1146,7 +1164,239 @@ export const DEMO_ASSETS: Asset[] = ASSET_SEEDS.map((seed) => {
 })
 
 /** Rattache les miniatures validées à leurs scènes. */
-export const DEMO_SCENES_WITH_ASSETS: StoryboardScene[] = DEMO_STORYBOARD_SCENES.map((scene) => {
-  const asset = DEMO_ASSETS.find((a) => a.sceneId === scene.id && a.status !== 'ephemeral')
+const DEMO_GILGAMESH_SCENES_WITH_ASSETS: StoryboardScene[] = DEMO_STORYBOARD_SCENES.map((scene) => {
+  const asset = DEMO_ASSETS_GILGAMESH.find((a) => a.sceneId === scene.id && a.status !== 'ephemeral')
   return asset ? { ...scene, assetId: asset.id } : scene
 })
+
+// ------------------------------------------------------------
+// Storyboards secondaires — Akhenaton, Alexandre
+//
+// Trois scènes chacun, construites à partir des images fournies
+// (public/demo-akhenaton, public/demo-alexandre). Pas encore de plans
+// techniques ni de connexions : ces deux projets n'ont pas de découpage
+// validé, contrairement à Gilgamesh.
+// ------------------------------------------------------------
+
+const SECONDARY_ASSETS: Asset[] = [
+  {
+    id: 'asset-akh-ceremony',
+    projectId: 'proj-akhenaton',
+    name: 'Storyboard — La cérémonie du disque',
+    type: 'image',
+    status: 'approved',
+    url: '/demo-akhenaton/scene-ceremony.png',
+    sceneId: 'sb-scene-akh-01',
+    createdAt: iso(20),
+    approvedAt: iso(20),
+    approvedBy: 'Administrateur',
+    metadata: { 'Type de plan': 'wide', Lumière: 'volumetric', Lieu: "Grand temple d'Aton, Akhetaton" },
+    versions: [],
+    relations: [],
+  },
+  {
+    id: 'asset-akh-atendisk',
+    projectId: 'proj-akhenaton',
+    name: 'Storyboard — Face au disque solaire',
+    type: 'image',
+    status: 'approved',
+    url: '/demo-akhenaton/scene-aten-disk.png',
+    sceneId: 'sb-scene-akh-02',
+    createdAt: iso(18),
+    approvedAt: iso(18),
+    approvedBy: 'Administrateur',
+    metadata: { 'Type de plan': 'medium', Lumière: 'chiaroscuro', Lieu: 'Sanctuaire du temple' },
+    versions: [],
+    relations: [],
+  },
+  {
+    id: 'asset-akh-templeruin',
+    projectId: 'proj-akhenaton',
+    name: 'Storyboard — Les ruines du culte',
+    type: 'image',
+    status: 'approved',
+    url: '/demo-akhenaton/scene-temple-ruin.png',
+    sceneId: 'sb-scene-akh-03',
+    createdAt: iso(15),
+    approvedAt: iso(15),
+    approvedBy: 'Administrateur',
+    metadata: { 'Type de plan': 'extreme-wide', Lumière: 'volumetric', Lieu: "Temple d'Aton, en ruines" },
+    versions: [],
+    relations: [],
+  },
+  {
+    id: 'asset-alex-army',
+    projectId: 'proj-alexandre',
+    name: 'Storyboard — La charge',
+    type: 'image',
+    status: 'approved',
+    url: '/demo-alexandre/scene-army.png',
+    sceneId: 'sb-scene-alex-01',
+    createdAt: iso(14),
+    approvedAt: iso(14),
+    approvedBy: 'Administrateur',
+    metadata: { 'Type de plan': 'medium-close', Lumière: 'dramatic', Lieu: 'Plaine de bataille' },
+    versions: [],
+    relations: [],
+  },
+  {
+    id: 'asset-alex-babylon',
+    projectId: 'proj-alexandre',
+    name: "Storyboard — L'entrée dans Babylone",
+    type: 'image',
+    status: 'approved',
+    url: '/demo-alexandre/scene-babylon.png',
+    sceneId: 'sb-scene-alex-02',
+    createdAt: iso(12),
+    approvedAt: iso(12),
+    approvedBy: 'Administrateur',
+    metadata: { 'Type de plan': 'wide', Lumière: 'golden-backlight', Lieu: 'Porte de Babylone' },
+    versions: [],
+    relations: [],
+  },
+  {
+    id: 'asset-alex-balcony',
+    projectId: 'proj-alexandre',
+    name: 'Storyboard — Seul face à la carte',
+    type: 'image',
+    status: 'approved',
+    url: '/demo-alexandre/scene-balcony.png',
+    sceneId: 'sb-scene-alex-03',
+    createdAt: iso(9),
+    approvedAt: iso(9),
+    approvedBy: 'Administrateur',
+    metadata: { 'Type de plan': 'medium', Lumière: 'night-ambient', Lieu: 'Terrasse du palais, Babylone' },
+    versions: [],
+    relations: [],
+  },
+]
+
+const SECONDARY_SCENES: StoryboardScene[] = [
+  {
+    id: 'sb-scene-akh-01',
+    sequenceId: 'seq-akh-01',
+    projectId: 'proj-akhenaton',
+    number: 1,
+    title: 'La cérémonie du disque',
+    location: "Int. — Grand temple d'Aton, Akhetaton",
+    timeOfDay: 'INT',
+    moment: 'Jour',
+    emotion: 'Ferveur, autorité',
+    intention: "Akhenaton et Néfertiti instaurent publiquement le culte d'un dieu unique.",
+    description: 'Le couple royal traverse la nef du temple sous un rayon de lumière, entouré de prêtres et du peuple.',
+    lighting: 'volumetric',
+    duration: 10,
+    mainShotType: 'wide',
+    assetId: 'asset-akh-ceremony',
+    order: 0,
+    canvasPosition: defaultCanvasPosition(0, 0),
+    notes: '',
+  },
+  {
+    id: 'sb-scene-akh-02',
+    sequenceId: 'seq-akh-01',
+    projectId: 'proj-akhenaton',
+    number: 2,
+    title: 'Face au disque solaire',
+    location: 'Int. — Sanctuaire du temple',
+    timeOfDay: 'INT',
+    moment: 'Jour',
+    emotion: 'Doute, solitude',
+    intention: "Seul face à la lumière d'Aton, Akhenaton commence à douter de son propre culte.",
+    description: "Akhenaton s'avance seul vers le puits de lumière ; Néfertiti l'observe de loin, en retrait.",
+    lighting: 'chiaroscuro',
+    duration: 8,
+    mainShotType: 'medium',
+    assetId: 'asset-akh-atendisk',
+    order: 1,
+    canvasPosition: defaultCanvasPosition(0, 1),
+    notes: '',
+  },
+  {
+    id: 'sb-scene-akh-03',
+    sequenceId: 'seq-akh-01',
+    projectId: 'proj-akhenaton',
+    number: 3,
+    title: 'Les ruines du culte',
+    location: "Int. — Temple d'Aton, en ruines",
+    timeOfDay: 'INT',
+    moment: 'Jour',
+    emotion: 'Perte, héritage brisé',
+    intention: "Après la chute d'Akhenaton, un enfant contemple la statue brisée du pharaon hérétique.",
+    description: "Un enfant se tient seul devant la statue colossale et fracturée d'Akhenaton, seul vestige du culte aboli.",
+    lighting: 'volumetric',
+    duration: 8,
+    mainShotType: 'extreme-wide',
+    assetId: 'asset-akh-templeruin',
+    order: 2,
+    canvasPosition: defaultCanvasPosition(0, 2),
+    notes: '',
+  },
+  {
+    id: 'sb-scene-alex-01',
+    sequenceId: 'seq-alex-01',
+    projectId: 'proj-alexandre',
+    number: 1,
+    title: 'La charge',
+    location: 'Ext. — Plaine de bataille',
+    timeOfDay: 'EXT',
+    moment: 'Aube',
+    emotion: 'Élan, fureur',
+    intention: "Alexandre entraîne sa cavalerie dans une nouvelle charge, incapable de s'arrêter.",
+    description: 'Alexandre, épée levée, mène sa cavalerie macédonienne à travers la poussière et les étendards.',
+    lighting: 'dramatic',
+    duration: 6,
+    mainShotType: 'medium-close',
+    assetId: 'asset-alex-army',
+    order: 0,
+    canvasPosition: defaultCanvasPosition(0, 0),
+    notes: '',
+  },
+  {
+    id: 'sb-scene-alex-02',
+    sequenceId: 'seq-alex-01',
+    projectId: 'proj-alexandre',
+    number: 2,
+    title: "L'entrée dans Babylone",
+    location: 'Ext. — Porte de Babylone',
+    timeOfDay: 'EXT',
+    moment: 'Jour',
+    emotion: 'Triomphe sans joie',
+    intention: "Alexandre entre en conquérant dans Babylone, un triomphe de plus qui ne le comble plus.",
+    description: "De dos, à cheval, Alexandre franchit la grande porte de la ville sous les acclamations de la foule.",
+    lighting: 'golden-backlight',
+    duration: 10,
+    mainShotType: 'wide',
+    assetId: 'asset-alex-babylon',
+    order: 1,
+    canvasPosition: defaultCanvasPosition(0, 1),
+    notes: '',
+  },
+  {
+    id: 'sb-scene-alex-03',
+    sequenceId: 'seq-alex-01',
+    projectId: 'proj-alexandre',
+    number: 3,
+    title: 'Seul face à la carte',
+    location: 'Int/Ext. — Terrasse du palais, Babylone',
+    timeOfDay: 'EXT',
+    moment: 'Nuit',
+    emotion: 'Doute, épuisement',
+    intention: "Pour la première fois, Alexandre se demande pourquoi il avance encore.",
+    description: 'Alexandre, seul sur une terrasse dominant la ville illuminée, regarde une carte sans la voir.',
+    lighting: 'night-ambient',
+    duration: 8,
+    mainShotType: 'medium',
+    assetId: 'asset-alex-balcony',
+    order: 2,
+    canvasPosition: defaultCanvasPosition(0, 2),
+    notes: '',
+  },
+]
+
+export const DEMO_ASSETS: Asset[] = [...DEMO_ASSETS_GILGAMESH, ...SECONDARY_ASSETS]
+
+export const DEMO_SCENES_WITH_ASSETS: StoryboardScene[] = [
+  ...DEMO_GILGAMESH_SCENES_WITH_ASSETS,
+  ...SECONDARY_SCENES,
+]

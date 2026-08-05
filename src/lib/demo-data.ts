@@ -390,8 +390,8 @@ export const DEMO_PROJECTS: Project[] = [
     traces: [
       {
         id: 'trace-akh-001',
-        projectId: 'gilgamesh',
-    status: 'decision',
+        projectId: 'proj-akhenaton',
+        status: 'decision',
         content: "Adopter le point de vue d'Akhenaton, pas celui de ses opposants.",
         date: '2026-06-20T00:00:00Z',
       },
@@ -400,7 +400,7 @@ export const DEMO_PROJECTS: Project[] = [
 
     isFavorite: true,
     isArchived: false,
-    coverImageUrl: '/reference-ui/akhenaton-cover.jpg',
+    coverImageUrl: '/demo-akhenaton/cover.png',
     completionPercent: 35,
     createdAt: '2026-06-01T08:00:00Z',
     updatedAt: '2026-07-10T14:00:00Z',
@@ -428,7 +428,7 @@ export const DEMO_PROJECTS: Project[] = [
 
     isFavorite: false,
     isArchived: false,
-    coverImageUrl: '/reference-ui/alexandre-cover.jpg',
+    coverImageUrl: '/demo-alexandre/cover.png',
     completionPercent: 22,
     createdAt: '2026-07-05T08:00:00Z',
     updatedAt: '2026-07-20T11:00:00Z',

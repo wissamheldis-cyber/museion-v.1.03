@@ -1,22 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
   DEV_ACCOUNTS,
-  DEFAULT_SITE_URL,
   parseArgs,
   pickAccounts,
+  assertDevelopmentEnvironment,
   classifyUser,
   isRateLimitError,
   isAlreadyRegisteredError,
   processAccount,
 } from './create-dev-users.mjs'
 
-const TEST_SITE_URL = 'http://localhost:3001'
-
-describe('DEFAULT_SITE_URL', () => {
-  it('matches the port Museion actually runs on locally', () => {
-    expect(DEFAULT_SITE_URL).toBe('http://localhost:3001')
-  })
-})
+const TEST_PASSWORD = 'Netflix2027'
 
 describe('parseArgs', () => {
   it('returns no-op defaults with no arguments', () => {
@@ -89,6 +83,29 @@ describe('pickAccounts', () => {
   })
 })
 
+describe('assertDevelopmentEnvironment', () => {
+  it('passes silently when SUPABASE_ENVIRONMENT is exactly "development"', () => {
+    expect(() => assertDevelopmentEnvironment({ SUPABASE_ENVIRONMENT: 'development' })).not.toThrow()
+  })
+
+  it('refuses when SUPABASE_ENVIRONMENT is unset', () => {
+    expect(() => assertDevelopmentEnvironment({})).toThrow(/development/)
+  })
+
+  it('refuses when SUPABASE_ENVIRONMENT is production', () => {
+    expect(() => assertDevelopmentEnvironment({ SUPABASE_ENVIRONMENT: 'production' })).toThrow(/development/)
+  })
+
+  it('refuses a near-miss value (case, whitespace)', () => {
+    expect(() => assertDevelopmentEnvironment({ SUPABASE_ENVIRONMENT: 'Development' })).toThrow()
+    expect(() => assertDevelopmentEnvironment({ SUPABASE_ENVIRONMENT: 'development ' })).toThrow()
+  })
+
+  it('never touches the network or process.env — pure function', () => {
+    expect(() => assertDevelopmentEnvironment({ SUPABASE_ENVIRONMENT: 'development' })).not.toThrow()
+  })
+})
+
 describe('classifyUser', () => {
   it('returns not_found for undefined', () => {
     expect(classifyUser(undefined)).toBe('not_found')
@@ -144,91 +161,126 @@ describe('isAlreadyRegisteredError', () => {
   })
 })
 
-describe('processAccount (idempotency — no network, mocked admin client)', () => {
+describe('processAccount — existing accounts (e.g. shou.edition@, jimfilmmakerai@ already invited)', () => {
   const account = DEV_ACCOUNTS[0]
   let admin
   let logSpy
   let errorSpy
 
   beforeEach(() => {
-    admin = { auth: { admin: { inviteUserByEmail: vi.fn() } } }
+    admin = {
+      auth: {
+        admin: {
+          updateUserById: vi.fn(),
+          createUser: vi.fn(),
+          deleteUser: vi.fn(),
+        },
+      },
+    }
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
     errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
   })
 
-  it('never invites an already-confirmed user', async () => {
-    const usersByEmail = new Map([[account.email, { email_confirmed_at: '2026-01-01T00:00:00Z' }]])
-    const result = await processAccount(admin, account, usersByEmail, TEST_SITE_URL)
-    expect(result).toBe('confirmed')
-    expect(admin.auth.admin.inviteUserByEmail).not.toHaveBeenCalled()
-  })
-
-  it('never re-sends an invitation to a pending user', async () => {
-    const usersByEmail = new Map([[account.email, { invited_at: '2026-01-01T00:00:00Z' }]])
-    const result = await processAccount(admin, account, usersByEmail, TEST_SITE_URL)
-    expect(result).toBe('invited_pending')
-    expect(admin.auth.admin.inviteUserByEmail).not.toHaveBeenCalled()
-  })
-
-  it('invites a genuinely new user exactly once', async () => {
-    admin.auth.admin.inviteUserByEmail.mockResolvedValue({ data: { user: { id: 'new-id' } }, error: null })
-    const result = await processAccount(admin, account, new Map(), TEST_SITE_URL)
-    expect(result).toBe('invited')
-    expect(admin.auth.admin.inviteUserByEmail).toHaveBeenCalledTimes(1)
-    expect(admin.auth.admin.inviteUserByEmail).toHaveBeenCalledWith(
-      account.email,
-      expect.objectContaining({ data: { display_name: account.displayName } })
-    )
-  })
-
-  it('builds redirectTo from the given siteUrl, targeting /reset-password', async () => {
-    admin.auth.admin.inviteUserByEmail.mockResolvedValue({ data: { user: { id: 'new-id' } }, error: null })
-    await processAccount(admin, account, new Map(), 'http://localhost:3001')
-    expect(admin.auth.admin.inviteUserByEmail).toHaveBeenCalledWith(
-      account.email,
-      expect.objectContaining({ redirectTo: 'http://localhost:3001/reset-password' })
-    )
-  })
-
-  it('never hardcodes port 3000 in the redirect it builds', async () => {
-    admin.auth.admin.inviteUserByEmail.mockResolvedValue({ data: { user: { id: 'new-id' } }, error: null })
-    await processAccount(admin, account, new Map(), 'http://localhost:3001')
-    const [, options] = admin.auth.admin.inviteUserByEmail.mock.calls[0]
-    expect(options.redirectTo).not.toContain('3000')
-  })
-
-  it('classifies a rate-limit error distinctly and does not treat it as success', async () => {
-    admin.auth.admin.inviteUserByEmail.mockResolvedValue({
-      data: null,
-      error: { status: 429, message: 'Email rate limit exceeded' },
+  it('sets the password on an already-confirmed existing user via updateUserById, not createUser', async () => {
+    admin.auth.admin.updateUserById.mockResolvedValue({ data: {}, error: null })
+    const usersByEmail = new Map([[account.email, { id: 'user-1', email_confirmed_at: '2026-01-01T00:00:00Z' }]])
+    const result = await processAccount(admin, account, usersByEmail, TEST_PASSWORD)
+    expect(result).toBe('password_set')
+    expect(admin.auth.admin.updateUserById).toHaveBeenCalledTimes(1)
+    expect(admin.auth.admin.updateUserById).toHaveBeenCalledWith('user-1', {
+      password: TEST_PASSWORD,
+      email_confirm: true,
     })
-    const result = await processAccount(admin, account, new Map(), TEST_SITE_URL)
-    expect(result).toBe('rate_limited')
-    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('Limite'))
+    expect(admin.auth.admin.createUser).not.toHaveBeenCalled()
   })
 
-  it('treats a race-condition "already registered" error as idempotent, not an error', async () => {
-    admin.auth.admin.inviteUserByEmail.mockResolvedValue({
+  it('activates a pending-invite user (shou.edition@/jimfilmmakerai@ case) via updateUserById', async () => {
+    admin.auth.admin.updateUserById.mockResolvedValue({ data: {}, error: null })
+    const usersByEmail = new Map([[account.email, { id: 'user-2', invited_at: '2026-01-01T00:00:00Z' }]])
+    const result = await processAccount(admin, account, usersByEmail, TEST_PASSWORD)
+    expect(result).toBe('password_set')
+    expect(admin.auth.admin.updateUserById).toHaveBeenCalledWith('user-2', {
+      password: TEST_PASSWORD,
+      email_confirm: true,
+    })
+    expect(admin.auth.admin.createUser).not.toHaveBeenCalled()
+  })
+
+  it('never calls deleteUser under any circumstance', async () => {
+    admin.auth.admin.updateUserById.mockResolvedValue({ data: {}, error: null })
+    const usersByEmail = new Map([[account.email, { id: 'user-1', email_confirmed_at: '2026-01-01T00:00:00Z' }]])
+    await processAccount(admin, account, usersByEmail, TEST_PASSWORD)
+    expect(admin.auth.admin.deleteUser).not.toHaveBeenCalled()
+  })
+
+  it('creates a genuinely new user (GRIFZ case) with the password, not updateUserById', async () => {
+    admin.auth.admin.createUser.mockResolvedValue({ data: { user: { id: 'new-id' } }, error: null })
+    const result = await processAccount(admin, account, new Map(), TEST_PASSWORD)
+    expect(result).toBe('created')
+    expect(admin.auth.admin.createUser).toHaveBeenCalledTimes(1)
+    expect(admin.auth.admin.createUser).toHaveBeenCalledWith({
+      email: account.email,
+      password: TEST_PASSWORD,
+      email_confirm: true,
+      user_metadata: { display_name: account.displayName },
+    })
+    expect(admin.auth.admin.updateUserById).not.toHaveBeenCalled()
+  })
+
+  it('never sends an invitation — no inviteUserByEmail call exists on the mock at all', async () => {
+    admin.auth.admin.createUser.mockResolvedValue({ data: { user: { id: 'new-id' } }, error: null })
+    await processAccount(admin, account, new Map(), TEST_PASSWORD)
+    expect(admin.auth.admin.inviteUserByEmail).toBeUndefined()
+  })
+
+  it('classifies a rate-limit error on update distinctly', async () => {
+    admin.auth.admin.updateUserById.mockResolvedValue({
+      data: null,
+      error: { status: 429, message: 'rate limit exceeded' },
+    })
+    const usersByEmail = new Map([[account.email, { id: 'user-1', email_confirmed_at: '2026-01-01T00:00:00Z' }]])
+    const result = await processAccount(admin, account, usersByEmail, TEST_PASSWORD)
+    expect(result).toBe('rate_limited')
+  })
+
+  it('treats a race-condition "already registered" error on create as idempotent, not an error', async () => {
+    admin.auth.admin.createUser.mockResolvedValue({
       data: null,
       error: { message: 'User already been registered' },
     })
-    const result = await processAccount(admin, account, new Map(), TEST_SITE_URL)
-    expect(result).toBe('confirmed')
+    const result = await processAccount(admin, account, new Map(), TEST_PASSWORD)
+    expect(result).toBe('password_set')
   })
 
-  it('surfaces a genuine unrelated error as an error, not a silent skip', async () => {
-    admin.auth.admin.inviteUserByEmail.mockResolvedValue({
+  it('surfaces a genuine unrelated create error as an error', async () => {
+    admin.auth.admin.createUser.mockResolvedValue({
       data: null,
       error: { message: 'Internal server error' },
     })
-    const result = await processAccount(admin, account, new Map(), TEST_SITE_URL)
+    const result = await processAccount(admin, account, new Map(), TEST_PASSWORD)
     expect(result).toBe('error')
   })
 
-  it('never logs anything resembling a secret key', async () => {
-    admin.auth.admin.inviteUserByEmail.mockResolvedValue({ data: { user: { id: 'x' } }, error: null })
-    await processAccount(admin, account, new Map())
+  it('surfaces a genuine unrelated update error as an error', async () => {
+    admin.auth.admin.updateUserById.mockResolvedValue({
+      data: null,
+      error: { message: 'Internal server error' },
+    })
+    const usersByEmail = new Map([[account.email, { id: 'user-1', email_confirmed_at: '2026-01-01T00:00:00Z' }]])
+    const result = await processAccount(admin, account, usersByEmail, TEST_PASSWORD)
+    expect(result).toBe('error')
+  })
+
+  it('never logs the password value, on create or on update', async () => {
+    admin.auth.admin.createUser.mockResolvedValue({ data: { user: { id: 'x' } }, error: null })
+    await processAccount(admin, account, new Map(), TEST_PASSWORD)
+
+    admin.auth.admin.updateUserById.mockResolvedValue({ data: {}, error: null })
+    const usersByEmail = new Map([[account.email, { id: 'user-1', email_confirmed_at: '2026-01-01T00:00:00Z' }]])
+    await processAccount(admin, account, usersByEmail, TEST_PASSWORD)
+
     const allLoggedText = [...logSpy.mock.calls, ...errorSpy.mock.calls].flat().join(' ')
+    expect(allLoggedText).not.toContain(TEST_PASSWORD)
     expect(allLoggedText.toLowerCase()).not.toContain('service_role')
     expect(allLoggedText).not.toMatch(/sb_secret_/)
   })

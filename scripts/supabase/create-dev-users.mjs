@@ -1,14 +1,17 @@
 #!/usr/bin/env node
 // ============================================================================
-// Museion V2.1 — administrative script: create the 3 dev Studio accounts.
+// Museion V2.1 — administrative script: create/activate the 3 dev Studio
+// accounts with a known development password.
 //
-// Public signup is disabled (see supabase/config.toml: enable_signup = false
-// for real usage, kept true locally only for CLI convenience). Accounts are
-// created administratively with the Admin API, then invited by email to set
-// their own password — this script never chooses or stores a password.
+// This only ever runs against SUPABASE_ENVIRONMENT=development — it sets a
+// real password via the Admin API (no email round-trip, no invitation sent).
+// Two of the three accounts already exist as pending invites from an earlier
+// run; this script finds them by email and sets their password instead of
+// creating a duplicate or re-inviting them. It never deletes a user.
 //
-// Idempotent: existing users (confirmed or already invited) are never
-// re-invited. Re-running this script is always safe.
+// Idempotent and safe to re-run: existing accounts get their password
+// (re)set via updateUserById, accounts that don't exist yet get created via
+// createUser — either way, at most one Admin API call per account per run.
 //
 // Usage:
 //   node scripts/supabase/create-dev-users.mjs [--help] [--only <email>]
@@ -16,21 +19,22 @@
 //   --help          Show this help and exit. Does not read secrets or touch the network.
 //   --only <email>  Process a single account instead of all three.
 //
-// Environment:
+// Environment (all required, except with --help):
 //   $env:SUPABASE_URL = "https://qwqyrkifzcpbtzfdctsl.supabase.co"   (or local API_URL)
 //   $env:SUPABASE_SERVICE_ROLE_KEY = "<paste only in this shell, never in a file>"
-//   $env:NEXT_PUBLIC_SITE_URL = "http://localhost:3001"  (optional, same default as the app)
+//   $env:SUPABASE_ENVIRONMENT = "development"
+//   $env:DEV_USER_PASSWORD = "<paste only in this shell, never in a file>"
 //
-// The invite email's redirect target is built from NEXT_PUBLIC_SITE_URL, not
-// hardcoded, so it always points at wherever the app actually runs and stays
-// in Supabase's redirect allowlist (supabase/config.toml additional_redirect_urls).
+// SUPABASE_ENVIRONMENT must be exactly "development" — this script refuses
+// to run against anything else, so it can never reset a real password on a
+// non-development project by accident.
 //
-// The service role key is read from the environment only. It is never
-// logged, written to a file, or echoed back. Unset the env var when done:
+// The service role key and the dev password are read from the environment
+// only. Neither is ever logged, written to a file, or echoed back. Unset
+// them when done:
 //   Remove-Item Env:\SUPABASE_SERVICE_ROLE_KEY
+//   Remove-Item Env:\DEV_USER_PASSWORD
 // ============================================================================
-
-export const DEFAULT_SITE_URL = 'http://localhost:3001'
 
 export const DEV_ACCOUNTS = [
   { email: 'shou.edition@gmail.com', displayName: 'Museion Studio — Admin' },
@@ -46,12 +50,13 @@ export const USAGE = `Usage: node scripts/supabase/create-dev-users.mjs [--help]
 Variables d'environnement requises (sauf avec --help) :
   SUPABASE_URL
   SUPABASE_SERVICE_ROLE_KEY
-
-Variable optionnelle :
-  NEXT_PUBLIC_SITE_URL (défaut : ${DEFAULT_SITE_URL})
+  SUPABASE_ENVIRONMENT     doit valoir exactement "development"
+  DEV_USER_PASSWORD        mot de passe appliqué aux comptes ci-dessous
 
 Comptes gérés :
 ${DEV_ACCOUNTS.map((a) => `  - ${a.email}`).join('\n')}
+
+Ne renvoie jamais d'email d'invitation, ne supprime jamais de compte.
 `
 
 // ============================================================
@@ -105,8 +110,24 @@ export function pickAccounts(accounts, onlyEmail) {
 }
 
 /**
- * Classifies an existing Auth user (or absence thereof) so the caller can
- * decide what to do without ever re-sending an invitation.
+ * Refuses to proceed unless SUPABASE_ENVIRONMENT is exactly "development".
+ * This is the hard safety gate against ever resetting a password on a
+ * non-development project. Pure — takes an env-like object, never reads
+ * process.env itself, so it's directly unit-testable.
+ */
+export function assertDevelopmentEnvironment(env) {
+  const value = env.SUPABASE_ENVIRONMENT
+  if (value !== 'development') {
+    throw new Error(
+      `SUPABASE_ENVIRONMENT doit valoir exactement "development" pour utiliser ce script ` +
+        `(valeur actuelle : ${value ? JSON.stringify(value) : '(non définie)'}).`
+    )
+  }
+}
+
+/**
+ * Classifies an existing Auth user (or absence thereof). Used for logging
+ * and for deciding create vs. update — never for skipping an account.
  * @returns {'not_found' | 'confirmed' | 'invited_pending'}
  */
 export function classifyUser(user) {
@@ -115,7 +136,7 @@ export function classifyUser(user) {
   return 'invited_pending'
 }
 
-/** Detects Supabase/GoTrue email rate-limit errors specifically. */
+/** Detects Supabase/GoTrue rate-limit errors. */
 export function isRateLimitError(error) {
   if (!error) return false
   if (error.status === 429) return true
@@ -138,49 +159,56 @@ function buildUsersByEmail(users) {
 }
 
 /**
- * Processes one account against an already-fetched user index. Never calls
- * inviteUserByEmail for an account that already exists in any state — that
- * is the whole point of idempotency here. Returns a status string for the
- * summary and exit-code logic.
- *
- * `siteUrl` (no trailing slash) must be one of Supabase's configured
- * additional_redirect_urls — the invite link lands the user on
- * `${siteUrl}/reset-password`, the only page that can consume the recovery
- * token and isn't behind the auth middleware.
+ * Processes one account against an already-fetched user index. Existing
+ * accounts (any state) get their password set via updateUserById; accounts
+ * that don't exist yet get created via createUser with that same password.
+ * No email is ever sent by either path. Never deletes anything. Returns a
+ * status string for the summary and exit-code logic.
  */
-export async function processAccount(admin, account, usersByEmail, siteUrl) {
+export async function processAccount(admin, account, usersByEmail, password) {
   const existing = usersByEmail.get(account.email.toLowerCase())
-  const status = classifyUser(existing)
+  const priorStatus = classifyUser(existing)
 
-  if (status === 'confirmed') {
-    console.log(`Compte existant et confirmé, ignoré : ${account.email}`)
-    return 'confirmed'
-  }
-  if (status === 'invited_pending') {
-    console.log(`Invitation déjà envoyée, en attente de confirmation (aucun renvoi) : ${account.email}`)
-    return 'invited_pending'
+  if (existing) {
+    const { error } = await admin.auth.admin.updateUserById(existing.id, {
+      password,
+      email_confirm: true,
+    })
+    if (error) {
+      if (isRateLimitError(error)) {
+        console.error(`Limite atteinte pour ${account.email} — réessayer plus tard avec --only ${account.email}.`)
+        return 'rate_limited'
+      }
+      console.error(`Erreur réelle pour ${account.email} : ${error.message}`)
+      return 'error'
+    }
+    const origin = priorStatus === 'invited_pending' ? 'invitation en attente activée' : 'compte existant'
+    console.log(`Mot de passe défini (${origin}) : ${account.email}`)
+    return 'password_set'
   }
 
-  const { data, error } = await admin.auth.admin.inviteUserByEmail(account.email, {
-    data: { display_name: account.displayName },
-    redirectTo: `${siteUrl}/reset-password`,
+  const { data, error } = await admin.auth.admin.createUser({
+    email: account.email,
+    password,
+    email_confirm: true,
+    user_metadata: { display_name: account.displayName },
   })
 
   if (error) {
     if (isAlreadyRegisteredError(error)) {
-      console.log(`Déjà existant (détecté pendant l'invitation), ignoré : ${account.email}`)
-      return 'confirmed'
+      console.log(`Déjà existant (détecté pendant la création), ignoré : ${account.email}`)
+      return 'password_set'
     }
     if (isRateLimitError(error)) {
-      console.error(`Limite d'envoi d'email atteinte pour ${account.email} — réessayer plus tard avec --only ${account.email}.`)
+      console.error(`Limite atteinte pour ${account.email} — réessayer plus tard avec --only ${account.email}.`)
       return 'rate_limited'
     }
     console.error(`Erreur réelle pour ${account.email} : ${error.message}`)
     return 'error'
   }
 
-  console.log(`Invitation envoyée à ${account.email} (id ${data.user.id})`)
-  return 'invited'
+  console.log(`Compte créé avec le mot de passe de développement : ${account.email} (id ${data.user.id})`)
+  return 'created'
 }
 
 // ============================================================
@@ -204,10 +232,22 @@ async function main() {
 
   const url = process.env.SUPABASE_URL
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const devPassword = process.env.DEV_USER_PASSWORD
   if (!url || !serviceRoleKey) {
     console.error(
       'SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY doivent être définis dans cette session de shell uniquement.'
     )
+    process.exit(1)
+  }
+  if (!devPassword) {
+    console.error('DEV_USER_PASSWORD doit être défini dans cette session de shell uniquement.')
+    process.exit(1)
+  }
+
+  try {
+    assertDevelopmentEnvironment(process.env)
+  } catch (err) {
+    console.error(err.message)
     process.exit(1)
   }
 
@@ -230,15 +270,14 @@ async function main() {
     process.exit(1)
   }
   const usersByEmail = buildUsersByEmail(userList.users)
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || DEFAULT_SITE_URL).replace(/\/$/, '')
 
   const results = []
   for (const account of accounts) {
-    results.push(await processAccount(admin, account, usersByEmail, siteUrl))
+    results.push(await processAccount(admin, account, usersByEmail, devPassword))
   }
 
   const hadError = results.some((r) => r === 'error' || r === 'rate_limited')
-  console.log('Terminé. Chaque compte doit valider son invitation pour définir son mot de passe.')
+  console.log('Terminé.')
   process.exit(hadError ? 1 : 0)
 }
 
