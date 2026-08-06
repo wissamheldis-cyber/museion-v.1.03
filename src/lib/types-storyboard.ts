@@ -263,11 +263,11 @@ export interface ComposedPrompt {
 
 export interface PreviewResult {
   id: string
-  status: AssetStatus   // Toujours 'ephemeral' pour le mock
-  url: string           // SVG data URI
+  status: AssetStatus   // 'ephemeral' pour le mock comme pour une vraie génération non validée
+  url: string           // SVG data URI pour le mock, URL du pont ComfyUI pour une vraie génération
   prompt: string
   simulatedModel: string
   generatedAt: string
-  isSimulation: true
+  isSimulation: boolean
   disclaimer: string
 }
