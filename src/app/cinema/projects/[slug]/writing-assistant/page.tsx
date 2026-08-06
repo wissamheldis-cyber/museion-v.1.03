@@ -6,12 +6,11 @@ import { useProjectScope } from "@/components/layout/useProjectFromRoute";
 import { useMuseionStore } from "@/store/museionStore";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
-import { cn, generateId } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { Send, Plus, Check, ArrowRightToLine } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SuccessToast } from "@/components/ui/SuccessToast";
-
-const mockWritingProvider = { generate: async (_m: unknown, _h: unknown) => ({ id: generateId(), role: "assistant" as const, content: "Réponse simulée", timestamp: Date.now() }), isSimulation: true, isActive: true, label: "Mock GPT" };
+import { activeWritingProvider } from "@/providers/writing";
 
 export default function WritingAssistantPage() {
   const { project, slug } = useProjectScope();
@@ -26,6 +25,7 @@ export default function WritingAssistantPage() {
   const [insertModalTarget, setInsertModalTarget] = useState<{ id: string; content: string; type: 'message' | 'variant' } | null>(null);
   const [insertSubField, setInsertSubField] = useState<string>("");
   const [toast, setToast] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   if (!project) return <AppShell projectSlug={slug}><ProjectNotFound slug={slug} /></AppShell>;
 
@@ -42,12 +42,29 @@ export default function WritingAssistantPage() {
   };
 
   const handleSend = async () => {
-    if (!inputMsg || !activeMissionId) return;
+    if (!inputMsg || !activeMissionId || !activeMission || isGenerating) return;
+    // `messages` is a stale snapshot from the last render — the store update below
+    // won't be reflected in it before generate() reads the history, so the just-sent
+    // message must be appended explicitly or the model receives it as missing.
+    const outgoingMessage: typeof messages[number] = {
+      id: "pending-outgoing",
+      missionId: activeMissionId,
+      role: "user",
+      content: inputMsg,
+      classification,
+      createdAt: new Date().toISOString(),
+    };
     store.addWritingMessage(activeMissionId, "user", inputMsg, classification);
     setInputMsg("");
-    if (mockWritingProvider.isActive) {
-      const resp = await mockWritingProvider.generate(activeMission, messages);
+    setIsGenerating(true);
+    try {
+      const resp = await activeWritingProvider.generate(activeMission, [...messages, outgoingMessage]);
       store.addWritingMessage(activeMissionId, "assistant", resp.content, "decision");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erreur inconnue";
+      setToast(`Échec de la génération : ${message}`);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -101,7 +118,7 @@ export default function WritingAssistantPage() {
         <div className="flex-1 flex flex-col bg-[var(--bg-base)]">
           <div className="p-4 border-b border-[var(--border-subtle)] flex justify-between items-center bg-[var(--bg-surface)]">
             <h1 className="text-lg">{activeMission ? activeMission.title : "Sélectionnez une mission"}</h1>
-            <div className="text-xs text-[var(--text-muted)]">Provider: {mockWritingProvider.label} {mockWritingProvider.isSimulation && "(Sim)"}</div>
+            <div className="text-xs text-[var(--text-muted)]">Provider: {activeWritingProvider.label} {activeWritingProvider.isSimulation && "(Sim)"} {isGenerating && "· génération en cours…"}</div>
           </div>
           <div className="flex-1 overflow-auto p-4 flex flex-col gap-4">
             {messages.map(msg => (
@@ -125,8 +142,8 @@ export default function WritingAssistantPage() {
               <option value="decision">Décision</option>
               <option value="hypothesis">Hypothèse</option>
             </select>
-            <Input className="flex-1" value={inputMsg} onChange={e=>setInputMsg(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSend()} placeholder="Message..." />
-            <Button onClick={handleSend}><Send className="w-4 h-4" /></Button>
+            <Input className="flex-1" value={inputMsg} onChange={e=>setInputMsg(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSend()} placeholder="Message..." disabled={isGenerating} />
+            <Button onClick={handleSend} disabled={isGenerating}><Send className="w-4 h-4" /></Button>
           </div>
         </div>
         <div className="w-80 border-l border-[var(--border-subtle)] p-4 flex flex-col gap-4 bg-[var(--bg-surface)]">
@@ -152,10 +169,10 @@ export default function WritingAssistantPage() {
           <div className="flex-1">
             <EmptyState
               title="Assistance à l'Écriture"
-              role="Le partenaire d&apos;écriture pour développer la bible du projet. Dialogue interactif avec le moteur de mock pour brainstormer et affiner les éléments narratifs de votre projet."
+              role="Le partenaire d&apos;écriture pour développer la bible du projet. Dialogue interactif avec un modèle local (LM Studio) pour brainstormer et affiner les éléments narratifs de votre projet."
               inputs={["Titre de mission", "Cible (Logline, Synopsis...)", "Contexte détaillé"]}
               outputs={["Historique des échanges", "Variantes validées", "Insertion directe dans le projet"]}
-              dependencies={["MockWritingProvider"]}
+              dependencies={["LM Studio (pont local)"]}
             />
           </div>
         )}
@@ -195,7 +212,7 @@ export default function WritingAssistantPage() {
 
               <div className="flex justify-end gap-2 mt-4 border-t border-[var(--border-subtle)] pt-4">
                 <Button variant="secondary" onClick={() => setInsertModalTarget(null)}>Annuler</Button>
-                <Button onClick={handleInsert}>Confirmer l'insertion</Button>
+                <Button onClick={handleInsert}>Confirmer l&apos;insertion</Button>
               </div>
             </div>
           </div>
